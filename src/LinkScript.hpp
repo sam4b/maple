@@ -10,7 +10,7 @@ enum class GameEvent {
 
 class LinkScript : public Script {
 public:
-	void onAttach(MapleServices& context) override {
+	void onAttach(Systems& context) override {
 		auto& trans = entity.addComponent<TransformComponent>();
 		trans.velocity = { 0, 0 };
 		trans.pos = { 300, 300 };
@@ -34,7 +34,7 @@ public:
 
 	}
 
-	void onUpdate(const float dt, MapleServices& view, Scene* scene) override {
+	void onUpdate(const float dt, Systems& view, Scene* scene) override {
 		sf::Vector2f vel{ 0,0 };
 		sf::Event events;
 		while (this->hasEvent(events)) {
@@ -97,7 +97,7 @@ REGISTER_SCRIPT(LinkScript);
 
 class NPCScript : public Script {
 public:
-	void onAttach(MapleServices& context) override {
+	void onAttach(Systems& context) override {
 		auto& trans = entity.addComponent<TransformComponent>();
 		trans.velocity = { 0, 0 };
 		trans.pos = { 0,0};
@@ -128,7 +128,7 @@ public:
 
 	}
 
-	void onUpdate(const float dt, MapleServices& view, Scene* scene) override {
+	void onUpdate(const float dt, Systems& view, Scene* scene) override {
 		if (display) {
 			scene->putDialog("There's a Skibidi in my bed\nSigma's gooning in my head\nGlizzies all over the room", 4000);
 			display = false;

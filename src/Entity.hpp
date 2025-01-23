@@ -47,7 +47,7 @@ public:
 		return (context.entityManager->hasComponent<Components>() && ...);
 	}
 
-	static MapleServices context;
+	static Systems context;
 private:
 	Entity(uint64_t id) : id(id) {};
 
@@ -61,4 +61,4 @@ private:
 	friend class EntityManager;
 };
 
-inline MapleServices Entity::context = MapleServices();
+inline Systems Entity::context = Systems();

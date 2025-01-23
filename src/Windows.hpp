@@ -216,7 +216,7 @@ public:
         ImGui::End();
     }
 
-    void draw(MapleServices mapleView) {
+    void draw(Systems mapleView) {
         texture.clear();
         if (!playing) {
             texture.draw(gridLine.data(), gridLine.size(), sf::Lines);

@@ -4,7 +4,7 @@ class ScriptManager;
 class AssetManager;
 class EntityManager;
 
-struct MapleServices {
+struct Systems {
 	ScriptManager* scriptManager;
 	EntityManager* entityManager;
 	AssetManager* assetManager;

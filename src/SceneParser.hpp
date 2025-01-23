@@ -6,7 +6,7 @@
 #include "Scene.hpp"
 
 
-Scene* ParseScene(const nlohmann::json& json, const std::unordered_map < std::string, std::function<Scene*()>>& sceneFactory, MapleServices context) {
+Scene* ParseScene(const nlohmann::json& json, const std::unordered_map < std::string, std::function<Scene*()>>& sceneFactory, Systems context, const std::filesystem::path& root) {
 	assert(json.contains("sceneName"));
 	
 	const std::string sceneName = json["sceneName"];
@@ -21,7 +21,7 @@ Scene* ParseScene(const nlohmann::json& json, const std::unordered_map < std::st
 	assert(scene);
 
 	assert(json.contains("assets"));
-	context.assetManager->LoadSceneAssets(json["assets"]);
+	context.assetManager->LoadSceneAssets(json["assets"], root);
 
 	assert(json.contains("entities"));
 	context.entityManager->loadJSON(json, context);

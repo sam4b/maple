@@ -18,7 +18,7 @@ public:
 		nameToMap[name] = components[id];
 	}
 
-	void loadJSON(const nlohmann::json& json, MapleServices context) {
+	void loadJSON(const nlohmann::json& json, Systems context) {
 		for (const uint64_t id : json["entities"]) {
 			entities.insert(id);
 		}

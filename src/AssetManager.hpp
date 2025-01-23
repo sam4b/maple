@@ -6,9 +6,7 @@
 #include <format>
 #include <imgui.h>
 #include <magic_enum.hpp>
-#include "vendor/ImGuiFileBrowser.hpp"
-#include "Random.hpp"
-
+#include "vendor/imgui-filebrowser/imfilebrowser.h"
 
 struct Texture {
 	sf::Texture* texture;
@@ -62,8 +60,8 @@ public:
 	}
 
 	//Must be called after loading the registry. It is ill formed if not.
-	void LoadSceneAssets(const nlohmann::json& assetData) {
-		for (const auto& id : assetData) {
+	void LoadSceneAssets(const nlohmann::json& assetData, const std::filesystem::path& root) {
+		for (const uint64_t id : assetData) {
 			assert(UUIDtoName.contains(id));
 
 			const std::string& name = UUIDtoName.at(id);
@@ -77,7 +75,7 @@ public:
 			if (properties.type == AssetProperties::Type::Texture) {
 				assert(!textures.contains(properties.uuid));
 
-				assert(textures[properties.uuid].loadFromFile(std::format("assets/textures/{}.png", uint64_t(id)))); //Note: stick a std::string in the union as name may not map to file?
+				assert(textures[properties.uuid].loadFromFile(std::format("{}/assets/textures/{}.png", root.string(), uint64_t(id)))); //Note: stick a std::string in the union as name may not map to file?
 				//Potentially move files.
 			}
 			else if (properties.type == AssetProperties::Type::SubTexture) {
@@ -85,7 +83,7 @@ public:
 				const auto parent = subData.parentUUID;
 
 				if (!textures.contains(parent)) {
-					assert(textures[parent].loadFromFile(std::format("assets/textures/{}.png", parent)));
+					assert(textures[parent].loadFromFile(std::format("{}/assets/textures/{}.png", root.string(), parent)));
 				}
 
 				TextureData data;

@@ -11,7 +11,7 @@ public:
         this->scene = scene;
     }
 
-    void onSceneCreate(MapleServices view, const nlohmann::json& context) {
+    void onSceneCreate(Systems view, const nlohmann::json& context) {
         scene->onSceneCreate(view, context);
         tsWindow.setupWindow(scene->map.getSet());
         mapWindow.setupWindow(&scene->map); //kinda evil
@@ -27,7 +27,7 @@ public:
         return { 1280, 720 };
     }
 
-    void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, MapleServices& view, const sf::Time time) noexcept override {
+    void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, Systems& view, const sf::Time time) noexcept override {
         std::queue<sf::Event> realSceneEvents;
         while (!events.empty()) {
             const auto top = events.front();
@@ -55,7 +55,7 @@ public:
     }
     
 
-    void draw(RenderTarget& target, MapleServices view) noexcept override {
+    void draw(RenderTarget& target, Systems view) noexcept override {
         sceneWindow.draw(view);
     }
 

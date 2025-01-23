@@ -93,8 +93,8 @@ void update_dialog_box(DialogBox* box, bool* finished, sf::Time time) {
 }
 class Scene {
 public:
-    virtual void draw(RenderTarget& target, MapleServices view) noexcept = 0;
-    virtual void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, MapleServices& view, const sf::Time time) noexcept = 0;
+    virtual void draw(RenderTarget& target, Systems view) noexcept = 0;
+    virtual void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, Systems& view, const sf::Time time) noexcept = 0;
     virtual ~Scene() = default;
     virtual sf::Vector2i getDrawSize() const noexcept = 0;
     DialogBox box;
@@ -115,7 +115,7 @@ public:
     }
 
 
-    bool moveWouldCauseCollision(Entity entity, sf::Vector2f velocity, float dt, MapleServices context) {
+    bool moveWouldCauseCollision(Entity entity, sf::Vector2f velocity, float dt, Systems context) {
         if (velocity == sf::Vector2f{0, 0}) return false;
         assert(entity.hasComponent<AABBCollisionComponent>());
 
@@ -148,7 +148,7 @@ public:
         return false;
     }
 
-    virtual void onSceneCreate(MapleServices view, const nlohmann::json& savedData) = 0;
+    virtual void onSceneCreate(Systems view, const nlohmann::json& savedData) = 0;
 
     void putDialog(const std::string& text, int amount) {
         assert(font.loadFromFile("C:/Users/Sam/Downloads/Arial.ttf"));
@@ -156,7 +156,7 @@ public:
         boxFinished = false;
     }
 
-    std::vector<Entity> getEntities(MapleServices view) noexcept {
+    std::vector<Entity> getEntities(Systems view) noexcept {
         assert(view.entityManager);
 
         std::vector<Entity> out;
@@ -172,7 +172,7 @@ public:
     It's also mandated that any entities returned have one. If an entity you expect is not appearing - it's probably that.
     */
     template <typename ...Components>
-    std::vector<Entity> getEntitiesNear(Entity caller, MapleServices view, float radius) noexcept {
+    std::vector<Entity> getEntitiesNear(Entity caller, Systems view, float radius) noexcept {
         static_assert(sizeof...(Components) > 0, "At least one component type is required.");
         EntityManager* manager = view.entityManager;
 

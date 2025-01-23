@@ -46,7 +46,7 @@ struct SpriteComponent : ComponentMetadata {
 		return json;
 	}
 
-	void FromJson(const nlohmann::json& json, MapleServices context) noexcept override {
+	void FromJson(const nlohmann::json& json, Systems context) noexcept override {
 		if (json.contains("texture")) {
 			const uint64_t id = json["texture"];
 			this->texture = id;
@@ -80,7 +80,7 @@ struct TransformComponent : ComponentMetadata {
 		return { /*{ "pos" , {component.pos.x, component.pos.y}}, {"velocity", {component.velocity.x, component.velocity.y}}*/};
 	}
 
-	void FromJson(const nlohmann::json& json, MapleServices context) noexcept override {
+	void FromJson(const nlohmann::json& json, Systems context) noexcept override {
 		sf::Vector2f pos = { json["pos"][0], json["pos"][1] };
 		sf::Vector2f velocity = { json["velocity"][0], json["velocity"][1] };
 
@@ -104,7 +104,7 @@ struct AABBCollisionComponent : ComponentMetadata {
 		return { /*{ "pos" , {component.pos.x, component.pos.y}}, {"size", {component.size.x, component.size.y}}*/};
 	}
 
-	void FromJson(const nlohmann::json& json, MapleServices context) noexcept override {
+	void FromJson(const nlohmann::json& json, Systems context) noexcept override {
 		sf::Vector2f pos = { json["pos"][0], json["pos"][1] };
 		sf::Vector2f size = { json["size"][0], json["size"][1] };
 
@@ -126,7 +126,7 @@ struct NameComponent : ComponentMetadata {
 		return {"name", name };
 	}
 
-	void FromJson(const nlohmann::json& json, MapleServices context) noexcept override {
+	void FromJson(const nlohmann::json& json, Systems context) noexcept override {
 		name = json["name"];
 	}
 

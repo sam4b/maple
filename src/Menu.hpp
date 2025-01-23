@@ -52,18 +52,18 @@ public:
         layers.back().buttons.push_back(r);
     }
 
-    void onSceneCreate(MapleServices view, const nlohmann::json& json) override {
+    void onSceneCreate(Systems view, const nlohmann::json& json) override {
 
     }
 
-    void draw(RenderTarget& target, MapleServices view) noexcept override {
+    void draw(RenderTarget& target, Systems view) noexcept override {
         for (const auto layer : std::ranges::views::reverse(layers)) {
             for (const auto& rect : layer.buttons) {
                 target.draw(rect);
             }
         }
     }
-    void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, MapleServices& view, const sf::Time time) noexcept override {
+    void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, Systems& view, const sf::Time time) noexcept override {
         while (!events.empty()) {
             const auto event = events.front();
 

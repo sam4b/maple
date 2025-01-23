@@ -18,6 +18,18 @@
 #include "SceneParser.hpp"
 #include <magic_enum.hpp>
 
+struct MapleProject {
+    std::filesystem::path root;
+    std::string name;
+    std::filesystem::path entryPoint;
+};
+
+struct Maple {
+    Systems systems;
+    UserContents userConents;
+    Scene* currentScene;
+};
+
 std::queue<sf::Event> readEvents(sf::RenderWindow& window, bool& shouldClose) {
     sf::Event e;
     std::queue<sf::Event> events;
@@ -68,7 +80,7 @@ std::queue<sf::Event> readEvents(sf::RenderWindow& window, bool& shouldClose) {
     return events;
 }
 
-void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Event> events, MapleServices context, sf::Vector2i mousePos) {
+void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Event> events, Systems context, sf::Vector2i mousePos) {
     std::queue<uint64_t> toKill; //Move to bump allocator.
 
     scene->update(events, mousePos, time.asSeconds(), context, time);
@@ -104,7 +116,7 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
 }
 
 
-void runProject(const std::filesystem::path& path) {
+void runProject(const MapleProject& project) {
     bool shouldClose = false;
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Editor");
 
@@ -116,7 +128,7 @@ void runProject(const std::filesystem::path& path) {
 
     bool playing = true;
 
-    MapleServices context;
+    Systems context;
 
     EntityManager entitySystem;
 
@@ -148,7 +160,7 @@ void runProject(const std::filesystem::path& path) {
 
 
 
-    std::filesystem::path registry("assetregistry.json");
+    std::filesystem::path registry(project.root / "assetregistry.json");
     if (std::filesystem::exists(registry)) { //No issue if it's the first time, we can create on shutdown.
         std::ifstream file(registry);
         assert(file.is_open());
@@ -160,14 +172,14 @@ void runProject(const std::filesystem::path& path) {
 
     const nlohmann::json json = [&]() -> nlohmann::json {
         std::cout << std::filesystem::current_path() << "\n";
-        std::filesystem::path p(path);
+        std::filesystem::path p = project.entryPoint;
         assert(std::filesystem::exists(p));
         std::ifstream f(p);
         assert(f.is_open());
         return nlohmann::json::parse(f);
         }();
 
-    Scene* scene = ParseScene(json, scenes, context);
+    Scene* scene = ParseScene(json, scenes, context, project.root);
 
     while (!shouldClose) {
         const auto time = clock.restart();
@@ -192,15 +204,10 @@ void log(const std::string& string) {
     std::cout << string << "\n";
 }
 
-struct Maple {
-    MapleServices services;
-    UserContents userConents;
-    Scene* currentScene;
-};
 
 Maple Init() {
     return {
-        .services = {
+        .systems = {
              .scriptManager = new ScriptManager(),
             .entityManager = new EntityManager(),
             .assetManager = new AssetManager(),
@@ -214,7 +221,7 @@ void LoadScene(Maple& maple, std::filesystem::path path) {
    // ParseScene();
 }
 
-void runEditorMode(std::string path) {
+void runEditorMode(const MapleProject& project) {
 
     bool shouldClose = false;
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Editor");
@@ -232,7 +239,7 @@ void runEditorMode(std::string path) {
 
     bool playing = true;
 
-    MapleServices context;
+    Systems context;
 
     EntityManager entitySystem;
 
@@ -264,7 +271,7 @@ void runEditorMode(std::string path) {
 
 
 
-    std::filesystem::path registry("assetregistry.json");
+    std::filesystem::path registry(project.root / "assetregistry.json");
     if (std::filesystem::exists(registry)) { //No issue if it's the first time, we can create on shutdown.
         std::ifstream file(registry);
         assert(file.is_open());
@@ -276,14 +283,14 @@ void runEditorMode(std::string path) {
 
     const nlohmann::json json = [&]() -> nlohmann::json { 
         std::cout << std::filesystem::current_path() << "\n";
-    std::filesystem::path p(path);
+    std::filesystem::path p = project.entryPoint;
     assert(std::filesystem::exists(p));
     std::ifstream f(p);
     assert(f.is_open());
     return nlohmann::json::parse(f);
     }();
 
-    Scene* scene = ParseScene(json, scenes, context);
+    Scene* scene = ParseScene(json, scenes, context, project.root);
 
 
     bool tilesetOpen = false;
@@ -455,10 +462,10 @@ void runEditorMode(std::string path) {
 
 class TestScene : public Scene {
     // Inherited via Scene
-    void draw(RenderTarget& target, MapleServices view) noexcept override
+    void draw(RenderTarget& target, Systems view) noexcept override
     {
     }
-    void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, MapleServices& view, const sf::Time time) noexcept override
+    void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, Systems& view, const sf::Time time) noexcept override
     { 
         ImGui::Begin("A");
         if (ImGui::Button("Increment")) {
@@ -480,7 +487,7 @@ class TestScene : public Scene {
     {
         return sf::Vector2i();
     }
-    void onSceneCreate(MapleServices view, const nlohmann::json& savedData) override
+    void onSceneCreate(Systems view, const nlohmann::json& savedData) override
     {
         Entity entity = Entity::createEntity();
         SpriteComponent& sprite = entity.addComponent<SpriteComponent>();
@@ -502,7 +509,7 @@ REGISTER_SCENE(TestScene);
 
 class TestScript : public Script {
     // Inherited via Script
-    void onAttach(MapleServices& manager) override
+    void onAttach(Systems& manager) override
     {
         auto& trans = entity.addComponent<TransformComponent>();
         trans.pos = { 128,128 };
@@ -511,7 +518,7 @@ class TestScript : public Script {
     void onDetach() override
     {
     }
-    void onUpdate(const float dt, MapleServices& view, Scene* scene) override
+    void onUpdate(const float dt, Systems& view, Scene* scene) override
     {
         sf::Vector2f vel{ 0,0 };
 constexpr float speed = 100;
@@ -535,15 +542,38 @@ constexpr float speed = 100;
 
     }
 };
-REGISTER_SCRIPT(TestScript);
+static_assert(std::is_base_of_v<Script, TestScript>, "Script must inherit from Script interface."); static struct maple_register_script_TestScript {
+    maple_register_script_TestScript() {
+        Registry::RegisterScript<TestScript>("TestScript", []() -> Script* { return new TestScript; });
+    }
+} maple_internal_register_script_TestScript;;
 
 
-int main(int argc, char** argv)
-{
 
-    runEditorMode("../../../../src/scene.json");
-    //runProject("../../../../src/scene.json");
+
+int main(int argc, char** argv) {
+    std::filesystem::path path = std::filesystem::current_path() / "../../../../testproject/project.json"; //Eventually move to argv.
+
+    assert(std::filesystem::exists(path));
     
-    return 0;
+    bool editor = false;
 
+    std::ifstream projectFile(path);
+
+    const nlohmann::json json = nlohmann::json::parse(projectFile);
+
+    MapleProject project;
+    project.root = path.parent_path();
+    project.entryPoint = path.parent_path() / json["entryPoint"];
+    project.name = json["name"];
+
+
+
+    if (!editor) {
+        runProject(project);
+    }
+    else {
+        runEditorMode(project);
+    }
+    return 0;
 }

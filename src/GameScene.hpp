@@ -83,7 +83,7 @@ class StardewScene : public Scene {
 public:
     StardewScene() = default;
 
-    void onSceneCreate(MapleServices view, const nlohmann::json& savedData) {
+    void onSceneCreate(Systems view, const nlohmann::json& savedData) {
 
         const StardewUISettings settings = {
             .inventoryScreenCapacity = 5,
@@ -109,7 +109,7 @@ public:
     }
 
 
-    void draw(RenderTarget& target, MapleServices view) noexcept override {
+    void draw(RenderTarget& target, Systems view) noexcept override {
 
         sf::RenderTarget* t = target.get();
 
@@ -140,7 +140,7 @@ public:
        // draw_stardew_ui(target, &ui);
     }
 
-    void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, MapleServices& view, const sf::Time time) noexcept override {
+    void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, Systems& view, const sf::Time time) noexcept override {
         bool mousePressed = false;
         while (!events.empty()) {
             const auto front = events.front();

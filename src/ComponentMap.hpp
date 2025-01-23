@@ -10,7 +10,7 @@
 */
 class ComponentMetadata {
 public:
-	virtual void FromJson(const nlohmann::json& json, MapleServices context) noexcept = 0;
+	virtual void FromJson(const nlohmann::json& json, Systems context) noexcept = 0;
 	[[nodiscard]] virtual nlohmann::json ToJson() const noexcept = 0;
 	virtual void ImGuiDisplay() noexcept {
 		ImGui::Text("Unimplemented. Override ImGuiDisplay().");
@@ -26,7 +26,7 @@ public:
 
 	virtual void destroyIfContains(uint64_t id) noexcept = 0;
 
-	virtual void fromJSON(const nlohmann::json& json, MapleServices context) noexcept = 0;
+	virtual void fromJSON(const nlohmann::json& json, Systems context) noexcept = 0;
 
 	virtual nlohmann::json toJSON() const noexcept = 0;
 };
@@ -45,7 +45,7 @@ public:
 		}
 	}
 
-	void fromJSON(const nlohmann::json& json, MapleServices context) noexcept override {
+	void fromJSON(const nlohmann::json& json, Systems context) noexcept override {
 		for (const auto& jsonObj : json) {
 			const uint64_t id = jsonObj["id"];
 

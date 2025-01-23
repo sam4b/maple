@@ -7,7 +7,7 @@
 #include "AssetManager.hpp"
 #include <format>
 
-class MapleServices;
+class Systems;
 
 class Script {
 public:
@@ -19,7 +19,7 @@ public:
 		this->entity = entity;
 	}
 
-	virtual void onAttach(MapleServices& manager) = 0;
+	virtual void onAttach(Systems& manager) = 0;
 
 	virtual void onDetach() = 0;
 
@@ -31,7 +31,7 @@ public:
 		events.push(event);
 	}
 
-	virtual void onUpdate(const float dt, MapleServices& view, Scene* scene) = 0;
+	virtual void onUpdate(const float dt, Systems& view, Scene* scene) = 0;
 protected:
 	[[nodiscard]] bool hasEvent(sf::Event& out) noexcept {
 		if (events.empty()) return false;

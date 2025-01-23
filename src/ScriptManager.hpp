@@ -8,7 +8,7 @@
 class ScriptManager {
 public:
 	template <typename T>
-	void addScript(Entity entity, MapleServices context) {
+	void addScript(Entity entity, Systems context) {
 		static_assert (std::is_base_of_v<Script, T>);
 
 		assert(!scriptMap.contains(entity.getID()));
@@ -20,7 +20,7 @@ public:
 		scriptMap[entity.getID()]->onAttach(context);
 	}
 
-	Script* addScript(Entity entity, MapleServices context, const std::string& name) {
+	Script* addScript(Entity entity, Systems context, const std::string& name) {
 		assert(factoryMap.contains(name));
 
 		assert(!scriptMap.contains(entity.getID()));
