@@ -1,0 +1,51 @@
+{
+  "sceneName" : "TestScene",
+  "assets": [
+    17172637987369300538,
+    1233869461097784027,
+    10992756056135360217
+
+  ],
+  "entities": [1,2,3],
+  "componentMaps": [
+
+    {
+      "name": "NameComponent",
+      "instances": [
+        {
+          "id": 1,
+          "data": {
+            "name": "Sam"
+          }
+        },
+        {
+          "id": 3,
+          "data": {
+            "name": "Steevil"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SpriteComponent",
+      "instances": [
+        {
+          "id": 1,
+          "data": {
+            "pos": [ 128, 128 ],
+            "size": [ 64, 64 ],
+            "texture": 4474315921077899832
+          }
+        }
+      ]
+    }
+  ],
+  
+  "scripts": [
+    {
+      "entityID": 1,
+      "name": "TestScript"
+    }
+  ],
+  "extraData" : null
+}
