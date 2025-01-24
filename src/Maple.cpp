@@ -30,6 +30,56 @@ struct Maple {
     Scene* currentScene;
 };
 
+Maple LoadProject(const MapleProject& project) {
+    Maple maple;
+    maple.systems.assetManager = new AssetManager();
+    maple.systems.entityManager = new EntityManager();
+    maple.systems.scriptManager = new ScriptManager();
+    
+    const auto [components, scripts, scenes] = Registry::GetUserContents();
+
+    for (const auto& [name, componentData] : components) {
+        maple.systems.entityManager->registerComponent(componentData.typeID, componentData.storageFactory, name);
+        std::cout << std::format("Registered component {}.\n", name);
+    }
+
+    for (const auto& [name, creator] : scripts) {
+        maple.systems.scriptManager->RegisterScript(name, creator);
+        std::cout << std::format("Registered script {}.\n", name);
+    }
+
+    for (const auto& [name, scene] : scenes) {
+        std::cout << std::format("Registered scene {}.\n", name);
+    }
+
+    Entity::context = maple.systems;
+
+
+
+    std::filesystem::path registry(project.root / "assetregistry.json");
+    if (std::filesystem::exists(registry)) { //No issue if it's the first time, we can create on shutdown.
+        std::ifstream file(registry);
+        assert(file.is_open());
+        const nlohmann::json assetRegistry = nlohmann::json::parse(file);
+        maple.systems.assetManager->LoadRegistry(assetRegistry);
+    };
+
+
+
+    const nlohmann::json json = [&]() -> nlohmann::json {
+        std::cout << std::filesystem::current_path() << "\n";
+        std::filesystem::path p = project.entryPoint;
+        assert(std::filesystem::exists(p));
+        std::ifstream f(p);
+        assert(f.is_open());
+        return nlohmann::json::parse(f);
+        }();
+
+    maple.currentScene = ParseScene(json, scenes, maple.systems, project.root);
+
+    return maple;
+}
+
 std::queue<sf::Event> readEvents(sf::RenderWindow& window, bool& shouldClose) {
     sf::Event e;
     std::queue<sf::Event> events;
@@ -80,6 +130,9 @@ std::queue<sf::Event> readEvents(sf::RenderWindow& window, bool& shouldClose) {
     return events;
 }
 
+/*
+    Somehow this has gained responsibility for drawing...
+*/
 void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Event> events, Systems context, sf::Vector2i mousePos) {
     std::queue<uint64_t> toKill; //Move to bump allocator.
 
@@ -113,10 +166,14 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
     }
 
     //Collision resolution?
+
 }
 
 
+
 void runProject(const MapleProject& project) {
+    Maple maple = LoadProject(project);
+
     bool shouldClose = false;
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Editor");
 
@@ -127,59 +184,6 @@ void runProject(const MapleProject& project) {
     sf::Clock clock;
 
     bool playing = true;
-
-    Systems context;
-
-    EntityManager entitySystem;
-
-    ScriptManager scriptSystem;
-
-    const auto [components, scripts, scenes] = Registry::GetUserContents();
-
-    for (const auto& [name, componentData] : components) {
-        entitySystem.registerComponent(componentData.typeID, componentData.storageFactory, name);
-        std::cout << std::format("Registered component {}.\n", name);
-    }
-
-    for (const auto& [name, creator] : scripts) {
-        scriptSystem.RegisterScript(name, creator);
-        std::cout << std::format("Registered script {}.\n", name);
-    }
-
-    for (const auto& [name, scene] : scenes) {
-        std::cout << std::format("Registered scene {}.\n", name);
-    }
-
-    AssetManager assetSystem;
-
-
-    context.entityManager = &entitySystem;
-    context.scriptManager = &scriptSystem;
-    context.assetManager = &assetSystem;
-    Entity::context = context;
-
-
-
-    std::filesystem::path registry(project.root / "assetregistry.json");
-    if (std::filesystem::exists(registry)) { //No issue if it's the first time, we can create on shutdown.
-        std::ifstream file(registry);
-        assert(file.is_open());
-        const nlohmann::json assetRegistry = nlohmann::json::parse(file);
-        context.assetManager->LoadRegistry(assetRegistry);
-    };
-
-
-
-    const nlohmann::json json = [&]() -> nlohmann::json {
-        std::cout << std::filesystem::current_path() << "\n";
-        std::filesystem::path p = project.entryPoint;
-        assert(std::filesystem::exists(p));
-        std::ifstream f(p);
-        assert(f.is_open());
-        return nlohmann::json::parse(f);
-        }();
-
-    Scene* scene = ParseScene(json, scenes, context, project.root);
 
     while (!shouldClose) {
         const auto time = clock.restart();
@@ -192,8 +196,8 @@ void runProject(const MapleProject& project) {
         const auto sceneMousePos = getRelativeToLatestImGuiTopLeft(windowMousePos);
 
         window.clear();
-        step(scene, time, target, events, context, sceneMousePos);
-        scene->draw(target, context);
+        step(maple.currentScene, time, target, events, maple.systems, sceneMousePos);
+        maple.currentScene->draw(target, maple.systems);
         ImGui::SFML::Render(window);
         window.display();
 
@@ -204,24 +208,15 @@ void log(const std::string& string) {
     std::cout << string << "\n";
 }
 
-
-Maple Init() {
-    return {
-        .systems = {
-             .scriptManager = new ScriptManager(),
-            .entityManager = new EntityManager(),
-            .assetManager = new AssetManager(),
-        },
-        .userConents = Registry::GetUserContents(),
-        .currentScene = nullptr
-    };
-}
-
 void LoadScene(Maple& maple, std::filesystem::path path) {
    // ParseScene();
 }
 
+
+
 void runEditorMode(const MapleProject& project) {
+
+    Maple maple = LoadProject(project);
 
     bool shouldClose = false;
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Editor");
@@ -238,60 +233,6 @@ void runEditorMode(const MapleProject& project) {
     sf::Clock clock;
 
     bool playing = true;
-
-    Systems context;
-
-    EntityManager entitySystem;
-
-    ScriptManager scriptSystem;
-
-    const auto [components, scripts, scenes] = Registry::GetUserContents();
-
-    for (const auto& [name, componentData] : components) {
-        entitySystem.registerComponent(componentData.typeID, componentData.storageFactory, name);
-        std::cout << std::format("Registered component {}.\n", name);
-    }
-
-    for (const auto& [name, creator] : scripts) {
-        scriptSystem.RegisterScript(name, creator);
-        std::cout << std::format("Registered script {}.\n", name);
-    }
-    
-    for (const auto& [name, scene] : scenes) {
-        std::cout << std::format("Registered scene {}.\n", name);
-    }
-
-    AssetManager assetSystem;
-
-
-    context.entityManager = &entitySystem;
-    context.scriptManager = &scriptSystem;
-    context.assetManager = &assetSystem;
-    Entity::context = context;
-
-
-
-    std::filesystem::path registry(project.root / "assetregistry.json");
-    if (std::filesystem::exists(registry)) { //No issue if it's the first time, we can create on shutdown.
-        std::ifstream file(registry);
-        assert(file.is_open());
-        const nlohmann::json assetRegistry = nlohmann::json::parse(file);
-        context.assetManager->LoadRegistry(assetRegistry);
-    };
-
-
-
-    const nlohmann::json json = [&]() -> nlohmann::json { 
-        std::cout << std::filesystem::current_path() << "\n";
-    std::filesystem::path p = project.entryPoint;
-    assert(std::filesystem::exists(p));
-    std::ifstream f(p);
-    assert(f.is_open());
-    return nlohmann::json::parse(f);
-    }();
-
-    Scene* scene = ParseScene(json, scenes, context, project.root);
-
 
     bool tilesetOpen = false;
     int tilesetID = -1;
@@ -314,12 +255,12 @@ void runEditorMode(const MapleProject& project) {
 
         ImGui::Begin("Entities");
 
-        for (auto id : entitySystem.getEntities()) {
+        for (auto id : maple.systems.entityManager->getEntities()) {
             ImGui::PushID(id);
 
   
-            if (ImGui::CollapsingHeader(entitySystem.hasComponent<NameComponent>(id) ?
-                entitySystem.getComponent<NameComponent>(id).name.c_str() :
+            if (ImGui::CollapsingHeader(maple.systems.entityManager->hasComponent<NameComponent>(id) ?
+                maple.systems.entityManager->getComponent<NameComponent>(id).name.c_str() :
                 std::format("Entity ID: {}", id).c_str())) {
 
                 if (ImGui::Button("Kill")) {
@@ -335,8 +276,8 @@ void runEditorMode(const MapleProject& project) {
                     ImGui::EndCombo();
                 }
 
-                for (auto& [name, componentData] : components) {
-                    componentData.editorShowable(name, entitySystem, id);
+                for (auto& [name, componentData] : maple.userConents.mapFactory) {
+                    componentData.editorShowable(name, *maple.systems.entityManager, id);
                 }
 
             }
@@ -370,20 +311,21 @@ void runEditorMode(const MapleProject& project) {
 
         if (playing) {
            // log(std::format("Scene mouse pos: {}, {}.", sceneMousePos.x, sceneMousePos.y));
-            step(scene, time, target, events, context, sceneMousePos);
-
             texture.clear();
-            RenderTarget target(&texture);
-            scene->draw(target, context);
+
+            step(maple.currentScene, time, target, events, maple.systems, sceneMousePos);
+
+            maple.currentScene->draw(target, maple.systems);
+            texture.display();
 
             while (!toKill.empty()) {
                 const auto id = toKill.front();
                 toKill.pop();
-                if (scriptSystem.hasScript(*(Entity*)&id)) {
-                    scriptSystem.detachScript(*(Entity*)&id, entitySystem);
+                if (maple.systems.scriptManager->hasScript(*(Entity*)&id)) {
+                    maple.systems.scriptManager->detachScript(*(Entity*)&id, *maple.systems.entityManager);
                 }
 
-                entitySystem.destroy(id);
+                maple.systems.entityManager->destroy(id);
             }
         }
         else {
@@ -393,34 +335,7 @@ void runEditorMode(const MapleProject& project) {
         ImGui::End();
 
 
-        assetSystem.ImGuiDisplay();
-        /*
-        if (ImGui::Button("Import new asset")) {
-            AssetMetadata metadata;
-           // data.id = generateUUID();
-           // data.path = path;
-            data.type = AssetMetadata::Type::Spritesheet;
-        }
-
-        for (const auto& [id, texture] : spritesheets) {
-            ImGui::PushID(id);
-            ImGui::Image(texture.getTexture(), sf::Vector2f(64, 64));
-            ImGui::SameLine();
-            ImGui::Text(meta.at(id).path.filename().string().c_str());
-            ImGui::SameLine();
-            if (ImGui::Button("Open tileset window")) {
-                tilesetOpen = true;
-                tilesetID = id;
-                tilesetWindow.setupWindow(spritesheets.at(tilesetID));
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Delete")) {
-
-            }
-
-           ImGui::PopID();
-        }*/
-
+        maple.systems.assetManager->ImGuiDisplay();
 
         if (tilesetOpen) {
             tilesetWindow.update(tilesetOpen);
@@ -432,36 +347,15 @@ void runEditorMode(const MapleProject& project) {
 
     }
 
-
-
-
-
-    /*
-    for (const auto id : entitySystem.getEntities()) {
-        Entity entity = *(Entity*)&id;
-        ImGui::Text(std::format("{}", id).c_str());
-        ImGui::SameLine();
-        ImGui::PushID(id);
-        if (ImGui::Button("Kill")) {
-            toKill.push(id);
-        }
-        if (scriptSystem.hasScript(entity)) {
-            ImGui::SameLine();
-            ImGui::Text("Has Script");
-        }
-        ImGui::PopID();
-    }*/
-
     std::cout << "Saving asset registry.\n";
-    std::ofstream f("assetregistry.json");
-    f << assetSystem.SaveRegistry();
+    std::ofstream f(project.root / "assetregistry.json");
+    f << maple.systems.assetManager->SaveRegistry();
     std::cout << "Asset registry saved successfuly.\n";
 
 
 }
 
 class TestScene : public Scene {
-    // Inherited via Scene
     void draw(RenderTarget& target, Systems view) noexcept override
     {
     }
@@ -508,7 +402,6 @@ REGISTER_SCENE(TestScene);
 
 
 class TestScript : public Script {
-    // Inherited via Script
     void onAttach(Systems& manager) override
     {
         auto& trans = entity.addComponent<TransformComponent>();
@@ -521,7 +414,7 @@ class TestScript : public Script {
     void onUpdate(const float dt, Systems& view, Scene* scene) override
     {
         sf::Vector2f vel{ 0,0 };
-constexpr float speed = 100;
+        constexpr float speed = 100;
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
 			vel.x += speed;
@@ -542,21 +435,14 @@ constexpr float speed = 100;
 
     }
 };
-static_assert(std::is_base_of_v<Script, TestScript>, "Script must inherit from Script interface."); static struct maple_register_script_TestScript {
-    maple_register_script_TestScript() {
-        Registry::RegisterScript<TestScript>("TestScript", []() -> Script* { return new TestScript; });
-    }
-} maple_internal_register_script_TestScript;;
-
-
-
+REGISTER_SCRIPT(TestScript);
 
 int main(int argc, char** argv) {
-    std::filesystem::path path = std::filesystem::current_path() / "../../../../testproject/project.json"; //Eventually move to argv.
+    const std::filesystem::path path = std::filesystem::current_path() / "../../../../testproject/project.json"; //Eventually move to argv.
 
     assert(std::filesystem::exists(path));
     
-    bool editor = false;
+    bool editor = true;
 
     std::ifstream projectFile(path);
 
