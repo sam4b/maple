@@ -3,6 +3,7 @@
 #include "GameScene.hpp"
 #include "imgui-SFML.h"
 #include "imgui.h"
+#include "Utils.hpp"
 
 [[nodiscard]] bool inBounds(const sf::Vector2i vector, int x, int y) noexcept {
     if (vector.x < 0 || vector.y < 0) return false;
@@ -115,14 +116,6 @@ private:
 };
 
 
-sf::Vector2i getRelativeToLatestImGuiTopLeft(const sf::Vector2i mousePos) {
-    const ImVec2 beginCorner = ImGui::GetCursorScreenPos();
-    const sf::Vector2i corner = { (int)beginCorner.x, (int)beginCorner.y };
-
-    const sf::Vector2i index = mousePos - corner;
-
-    return index;
-}
 
 class SceneWindow {
 public:

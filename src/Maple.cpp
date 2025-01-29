@@ -17,6 +17,7 @@
 #include "Meta.hpp"
 #include "SceneParser.hpp"
 #include <magic_enum.hpp>
+#include "AssetGUI.hpp"
 
 struct MapleProject {
     std::filesystem::path root;
@@ -288,6 +289,7 @@ void runEditorMode(const MapleProject& project) {
         }
         ImGui::End();
 
+
         constexpr int NO_BORDER = 0;
         ImGui::Begin("Scene");
         if (ImGui::Button((playing) ? "Pause" : "Play")) {
@@ -335,17 +337,19 @@ void runEditorMode(const MapleProject& project) {
         ImGui::End();
 
 
-        maple.systems.assetManager->ImGuiDisplay();
+     //   maple.systems.assetManager->ImGuiDisplay();
 
         if (tilesetOpen) {
             tilesetWindow.update(tilesetOpen);
         }
 
+        AssetWindow(*maple.systems.assetManager, maple.systems.assetManager->GetRegistry(), project.root);
         window.clear();
         ImGui::SFML::Render(window);
         window.display();
 
     }
+
 
     std::cout << "Saving asset registry.\n";
     std::ofstream f(project.root / "assetregistry.json");

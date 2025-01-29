@@ -2,7 +2,9 @@
 set(CMAKE_CXX_STANDARD 20)
 
 
-add_executable(Maple "Maple.cpp" "SceneParser.hpp" "Map.hpp" "Random.hpp" "Registry.hpp" "AssetManager.hpp" "Scene.hpp" "Tileset.hpp" "Menu.hpp" "Meta.hpp" "ComponentMap.hpp" "GameScene.hpp" "ScriptManager.hpp" "EditorScene.hpp" "LinkScript.hpp" "Animation.hpp" "Entity.hpp" "EntityManager.hpp" "RenderTarget.hpp" "Windows.hpp" "MapleComponents.hpp" "Scripting.hpp" 
+add_executable(Maple "Maple.cpp" "SceneParser.hpp" "Map.hpp" "Random.hpp" 
+"AssetRegistry.hpp" "AssetGUI.hpp" "AssetProperties.hpp"
+"Registry.hpp" "Utils.hpp" "AssetManager.hpp" "Scene.hpp" "Tileset.hpp" "Menu.hpp" "Meta.hpp" "ComponentMap.hpp" "GameScene.hpp" "ScriptManager.hpp" "EditorScene.hpp" "LinkScript.hpp" "Animation.hpp" "Entity.hpp" "EntityManager.hpp" "RenderTarget.hpp" "Windows.hpp" "MapleComponents.hpp" "Scripting.hpp" 
 "vendor/imgui-filebrowser/imfilebrowser.cpp" "vendor/imgui-filebrowser/imfilebrowser.h" ) #Last include is gross, fix soon.
 
 find_package(SFML COMPONENTS system window graphics audio CONFIG REQUIRED)
