@@ -193,4 +193,6 @@ private:
 
 
 	AssetRegistry registry;
+
+	friend bool AnimationImport(AssetManager&,AssetRegistry&,const std::filesystem::path&);
 };

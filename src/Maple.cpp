@@ -209,12 +209,6 @@ void log(const std::string& string) {
     std::cout << string << "\n";
 }
 
-void LoadScene(Maple& maple, std::filesystem::path path) {
-   // ParseScene();
-}
-
-
-
 void runEditorMode(const MapleProject& project) {
 
     Maple maple = LoadProject(project);
@@ -446,8 +440,6 @@ int main(int argc, char** argv) {
 
     assert(std::filesystem::exists(path));
     
-    bool editor = true;
-
     std::ifstream projectFile(path);
 
     const nlohmann::json json = nlohmann::json::parse(projectFile);
@@ -457,13 +449,18 @@ int main(int argc, char** argv) {
     project.entryPoint = path.parent_path() / json["entryPoint"];
     project.name = json["name"];
 
+    std::string s;
+    while (s != "editor" && s != "run") {
+        s.clear();
+        std::cout << std::format("Choose mode [editor/run] for project with path {}: ", path.string());
+        std::cin >> s;
+    }
 
-
-    if (!editor) {
-        runProject(project);
+    if (s == "editor") {
+        runEditorMode(project);
     }
     else {
-        runEditorMode(project);
+        runProject(project);
     }
     return 0;
 }

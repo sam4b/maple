@@ -5,6 +5,117 @@
 #include <imgui.h>
 #include <imgui-SFML.h>
 
+bool AnimationImport(AssetManager& manager, AssetRegistry& registry, const std::filesystem::path& projectRoot) {
+	static struct AnimationCreatorData {
+		bool selected;
+		uint64_t textureID;
+
+		AnimationCreatorData() {
+			selected = false;
+			textureID = 0;
+		}
+
+	} animData;
+
+	if (!animData.selected) {
+		ImGui::Begin("Animations");
+		for (const auto& [id, texture] : manager.textures) {
+			const auto& name = registry.getName(id);
+			const auto properties = registry.getProperties(name);
+
+			assert(properties.type == AssetProperties::Type::Texture);
+
+			sf::Sprite sprite;
+			sprite.setTexture(texture);
+
+			ImGui::PushID(id); //narrowing
+			ImGui::Text(std::format("{}", name).c_str());
+			ImGui::Image(sprite, { 128, 128 });
+			if (ImGui::Button("Select")) {
+				if (animData.selected == false) { //Don't overwrite, though it should be impossible for
+					//us to be here if so.
+					animData.selected = true;
+					animData.textureID = id;
+				}
+			}
+			ImGui::PopID();
+
+
+
+		}
+		ImGui::End();
+	}
+	else {
+		static struct AnimationData {
+			std::string name;
+			std::vector<uint64_t> ids; //Could optimise to be a smaller index into the same texture and calculate on fly?
+		} data;
+
+		ImGui::Begin("Animation Creator");
+		ImGui::InputText("Name", &data.name);
+
+
+
+		if (!data.ids.empty()) {
+			ImGui::Text("Frames");
+			for (const auto id : data.ids) {
+				sf::Sprite sprite;
+				const auto tex = manager.GetTexture(id);
+				sprite.setTexture(*tex.value().texture);
+				sprite.setTextureRect(tex.value().rect);
+				ImGui::Image(sprite, { 64, 64 });
+				ImGui::SameLine();
+			}
+
+			ImGui::NewLine();
+		}
+
+		const sf::Texture& tex = manager.textures.at(animData.textureID);
+
+#define FUCK 16
+		const int columns = tex.getSize().x / FUCK;
+		const int rows = tex.getSize().y / FUCK;
+
+		const int numIDS = columns * rows;
+
+		for (int i = 0; i < numIDS; i++) {
+			sf::Sprite sprite;
+			const std::string name = std::format("{}_{}", registry.getName(animData.textureID), i);
+			const AssetProperties properties = registry.getProperties(name);
+			const auto uuid = properties.uuid;
+			sprite.setTexture(tex);
+			sprite.setTextureRect(manager.GetTexture(name).value().rect);
+			ImGui::PushID(i);
+			if (ImGui::ImageButton(sprite, { 64, 64 })) {
+				data.ids.push_back(uuid);
+			}
+			if (i % 16 != 0 || i == 0) {
+				ImGui::SameLine();
+			}
+			ImGui::PopID();
+		}
+
+		if (ImGui::Button("Create")) {
+			const uint64_t id = generateUUID();
+
+			if (data.ids.empty()) {
+				assert(false);
+			}
+			ImGui::End();
+			return false;
+
+		}
+
+		if (ImGui::Button("Cancel")) {
+			animData.selected = false;
+			ImGui::End();
+			return false;
+		}
+		ImGui::End();
+	}
+	return true;
+}
+
 bool TextureImport(AssetManager& manager, AssetRegistry& registry, const std::filesystem::path& projectRoot) {
 	static struct TextureImportData {
 		TextureImportData() {
@@ -72,8 +183,14 @@ bool TextureImport(AssetManager& manager, AssetRegistry& registry, const std::fi
 		}
 	}
 	else { //Open a file dialog.
+		static bool hasBeenOpened = false;
 		if (!importData.fileDialog.IsOpened()) {
 			importData.fileDialog.Open();
+			if (hasBeenOpened) {
+				hasBeenOpened = false;
+				return false; //Exit
+			}
+			hasBeenOpened = true;
 		}
 		if (importData.fileDialog.HasSelected()) {
 			const std::filesystem::path path(importData.fileDialog.GetSelected());
@@ -115,6 +232,7 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry, const std::file
 	static bool showAssetTypeScreen = !assetType.beginImport;
 
 	static const char* textureString = "TextureImport";
+	static const char* animationString = "AnimationImport";
 	ImGui::Begin("Assets");
 	if (showAssetTypeScreen) {
 		ImGui::Combo("Asset Type", &assetType.selectedType, arr, size);
@@ -133,7 +251,7 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry, const std::file
 				ImGui::OpenPopup("SpritesheetImport");
 				break;
 			case Animation:
-				ImGui::OpenPopup("AnimationImport");
+				ImGui::OpenPopup(animationString);
 				break;
 			default:
 				assert(false);
@@ -147,13 +265,24 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry, const std::file
 			const bool continuing = TextureImport(manager, registry, projectRoot);
 			if (!continuing) {
 				ImGui::CloseCurrentPopup();
+				showAssetTypeScreen = true;
 			}
 			ImGui::EndPopup();
 
 		}
+		else if (ImGui::BeginPopupModal(animationString)) {
+			const bool continuing = AnimationImport(manager, registry, projectRoot);
+			if (!continuing) {
+				ImGui::CloseCurrentPopup();
+				showAssetTypeScreen = true;
+			}
+			ImGui::EndPopup();
+		}
 	}
 	ImGui::End();
 }
+
+
 
 /*
 void ImGuiDisplay() {
