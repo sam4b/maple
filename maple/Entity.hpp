@@ -9,19 +9,10 @@
 class Entity {
 public:
 
-	Entity() {
-		assert(false);
-		//bad
-	}
-	static Entity createEntity() {
-		const uint64_t id = context.entityManager->create();
-		
-		return Entity(id);
-	}
+	Entity();
+	static Entity createEntity();
 
-	[[nodiscard]] uint64_t getID() const noexcept {
-		return id;
-	}
+	[[nodiscard]] uint64_t getID() const noexcept;
 
 	template <typename Component>
 	Component& addComponent() {
@@ -51,7 +42,7 @@ public:
 private:
 	Entity(uint64_t id) : id(id) {};
 
-	static Entity createDummyEntity() {
+	inline static Entity createDummyEntity() {
 		return Entity(UINT64_MAX); //temp;
 	}
 
@@ -60,5 +51,3 @@ private:
 	friend class Script;
 	friend class EntityManager;
 };
-
-inline Systems Entity::context = Systems();

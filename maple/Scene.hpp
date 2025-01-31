@@ -6,7 +6,6 @@
 #include <string>
 #include <fstream>
 #include <nlohmann/json.hpp>
-#include "Map.hpp"
 #include "RenderTarget.hpp"
 #include "Scripting.hpp"
 #include <ranges>
@@ -16,94 +15,12 @@
 #include "Entity.hpp"
 #include <format>
 
-class TextRenderer {
-public:
-    TextRenderer(std::string&& text, int millis) : ptr(0), text(std::move(text)), accum(0.0f), micros(millis * 1000) {};
-
-    [[nodiscard]] bool finished() const noexcept {
-        return ptr == text.size();
-    }
-
-    void update(sf::Text& text, const sf::Time time) {
-        if (!finished()) {
-            accum += time.asMicroseconds();
-            if (accum >= (micros / this->text.size())) {
-                ptr++;
-                text.setString(this->text.substr(0, ptr)); //Lazy update.
-                accum = 0;
-            }
-        }
-    }
-private:
-    int ptr;
-    int accum;
-    int micros;
-    std::string text;
-};
-
-struct DialogBox {
-    int elapsedSinceUpdate;
-    int ptr;
-    int durationPerCharacter;
-    std::string data;
-    sf::Text text;
-    sf::RectangleShape rectangle;
-};
-
-DialogBox create_dialog_box(sf::Vector2f size, sf::Vector2f pos, const std::string& string, int durationInMilliseconds, sf::Font& font) {
-    sf::RectangleShape shape;
-    shape.setFillColor(sf::Color::Black);
-    shape.setPosition(pos);
-    shape.setSize(size);
-
-    sf::Text text;
-    text.setCharacterSize(12);
-    text.setFont(font);
-    text.setPosition(pos);
-    text.setFillColor(sf::Color::White);
-
-    DialogBox box;
-    box.text = text;
-    box.data = string;
-    box.rectangle = shape;
-    box.durationPerCharacter = (durationInMilliseconds * 1000 /*Scale to microseconds*/) / string.size();
-    box.ptr = 0;
-    box.elapsedSinceUpdate = 0;
-
-    return box;
-}
-
-void update_dialog_box(DialogBox* box, bool* finished, sf::Time time) {
-    if (*finished) return;
-
-    if (box->ptr != box->data.size()) {
-        box->elapsedSinceUpdate += time.asMicroseconds();
-        if (box->durationPerCharacter <= box->elapsedSinceUpdate) {
-            box->ptr++;
-            const std::string sub = box->data.substr(0, box->ptr);
-            //std::cout << sub << std::endl;
-            box->text.setString(sub); //Lazy update.
-            box->elapsedSinceUpdate = 0;
-        }
-        *finished = false;
-    }
-    else {
-        *finished = true;
-    }
-}
 class Scene {
 public:
     virtual void draw(RenderTarget& target, Systems view) noexcept = 0;
     virtual void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, Systems& view, const sf::Time time) noexcept = 0;
     virtual ~Scene() = default;
     virtual sf::Vector2i getDrawSize() const noexcept = 0;
-    DialogBox box;
-    bool boxFinished = true;
-    sf::Font font;
-
-    Map map;
-
-
 
 
     bool collision(AABBCollisionComponent a, AABBCollisionComponent b) {
@@ -121,12 +38,6 @@ public:
 
         AABBCollisionComponent collider = entity.getComponent<AABBCollisionComponent>();
         collider.pos += (dt * velocity);
-
-
-        //Check tilemap collision
-        if (map.isCollidable(collider)) {
-            return true;
-        }
 
 
 
@@ -149,13 +60,6 @@ public:
     }
 
     virtual void onSceneCreate(Systems view, const nlohmann::json& savedData) = 0;
-
-    void putDialog(const std::string& text, int amount) {
-        assert(font.loadFromFile("C:/Users/Sam/Downloads/Arial.ttf"));
-            box = create_dialog_box({ 512, 256 }, { 0, 0 }, text, amount, font);
-        boxFinished = false;
-    }
-
     std::vector<Entity> getEntities(Systems view) noexcept {
         assert(view.entityManager);
 

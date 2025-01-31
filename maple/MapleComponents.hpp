@@ -65,7 +65,6 @@ static_assert(std::is_base_of_v<ComponentMetadata, SpriteComponent>, "Component 
 	}
 } maple_internal_register_component_SpriteComponent;;
 
-#define MAPLE_REGISTERED_COMPONENTS SpriteComponent, TransformComponent
 
 struct TransformComponent : ComponentMetadata {
 	sf::Vector2f pos;

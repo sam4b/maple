@@ -35,6 +35,10 @@ public:
 
         assert(m_instance);
 
+        if (m_instance->mapFactory.contains(string)) { //Some prior linking shit has done it before.
+            return;
+        }
+
         assert(!m_instance->mapFactory.contains(string));
 
         //Produce ImGui code
@@ -81,7 +85,7 @@ public:
         m_instance->scriptFactory[scriptName] = scriptFactory;
     }
 
-    static void RegisterScene(const std::string sceneName, std::function < Scene* ()> sceneSpawner) {
+    static inline void RegisterScene(const std::string sceneName, std::function < Scene* ()> sceneSpawner) {
         if (!m_instance) {
             m_instance = new Registry();
         }
@@ -94,7 +98,7 @@ public:
 
     }
 
-    static UserContents GetUserContents() {
+    static inline UserContents GetUserContents() {
         if (!m_instance) {
             //Warn that user has registered nothing.
             m_instance = new Registry();
@@ -115,9 +119,6 @@ private:
     std::unordered_map<std::string, std::function<Script* ()>> scriptFactory;
     std::unordered_map<std::string, std::function<Scene* ()>> sceneFactory;
 };
-
-Registry* Registry::m_instance = nullptr;
-
 
 #define REGISTER_COMPONENT(name) \
 static_assert(std::is_base_of_v<ComponentMetadata, name>, "Component must implement (de)serialization functions!"); \

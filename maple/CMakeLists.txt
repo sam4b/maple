@@ -1,11 +1,8 @@
 
 set(CMAKE_CXX_STANDARD 20)
 
-
-add_executable(Maple "Maple.cpp" "SceneParser.hpp" "Map.hpp" "Random.hpp" 
-"AssetRegistry.hpp" "AssetGUI.hpp" "AssetProperties.hpp"
-"Registry.hpp" "Utils.hpp" "AssetManager.hpp" "Scene.hpp" "Tileset.hpp" "Menu.hpp" "Meta.hpp" "ComponentMap.hpp" "GameScene.hpp" "ScriptManager.hpp" "EditorScene.hpp" "LinkScript.hpp" "Animation.hpp" "Entity.hpp" "EntityManager.hpp" "RenderTarget.hpp" "Windows.hpp" "MapleComponents.hpp" "Scripting.hpp" 
-"vendor/imgui-filebrowser/imfilebrowser.cpp" "vendor/imgui-filebrowser/imfilebrowser.h" ) #Last include is gross, fix soon.
+add_library(Maple STATIC "AssetManager.cpp" "AssetRegistry.cpp" "Entity.cpp" "EntityManager.cpp" "maple.cpp" "Registry.cpp" "SceneParser.cpp" "Meta.cpp")
+target_include_directories(Maple PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 find_package(SFML COMPONENTS system window graphics audio CONFIG REQUIRED)
 target_link_libraries(Maple PUBLIC sfml-system sfml-network sfml-audio sfml-graphics sfml-window)
