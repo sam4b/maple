@@ -152,7 +152,9 @@ bool SpritesheetImport(AssetManager& manager, AssetRegistry& registry) {
 		if (spriteSheetData.tileSize > 0 && importData.imported) { //Safe to recalculate
 			static std::vector<sf::Vertex> gridLine;
 			gridLine.reserve((importData.t.getSize().x / spriteSheetData.tileSize) + (importData.t.getSize().y / spriteSheetData.tileSize));
-
+			spriteSheetData.cols = importData.t.getSize().x / spriteSheetData.tileSize;
+			spriteSheetData.rows = importData.t.getSize().y / spriteSheetData.tileSize;
+			spriteSheetData.tilesetRatio = importData.t.getSize().x / spriteSheetData.tileSize;
 			createGrid(spriteSheetData.tileSize, importData.t.getSize(), gridLine); //Allocatinng each frame :skull:, though we can probably do this conditionally.
 
 			texture.draw(gridLine.data(), gridLine.size(), sf::Lines);
@@ -162,7 +164,7 @@ bool SpritesheetImport(AssetManager& manager, AssetRegistry& registry) {
 		ImGui::Image(texture);
 
 		if (ImGui::Button("Import")) {
-			if (importData.imported) {
+			if (importData.imported && spriteSheetData.tileSize > 0) {
 				manager.ImportSpritesheet(importData.path, importData.name, spriteSheetData);
 				return false;
 			}
@@ -279,6 +281,56 @@ bool TextureImport(AssetManager& manager, AssetRegistry& registry) {
 		importData.fileDialog.Display();
 
 	return true;
+}
+
+inline void Assets(const AssetManager& manager) {
+	ImGui::Begin("Asset Window");
+	if (ImGui::BeginTabBar("Types")) {
+		if (ImGui::BeginTabItem("Textures/Spritesheets")) {
+			for (const auto& [uuid, texture] : manager.textures) {
+				ImGui::PushID(uuid);
+
+				ImGui::PopID();
+			}
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("SubTextures")) {
+			for (const auto& [uuid, texture] : manager.subTextures) {
+				ImGui::PushID(uuid);
+				sf::Sprite sprite;
+				sprite.setTexture(*texture.texture.texture);
+				sprite.setTextureRect(texture.texture.rect);
+				ImGui::Image(sprite, { 64, 64 });
+				ImGui::PopID();
+			}
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Animations")) {
+
+			for (auto i : manager.animations) {
+
+			}
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Fonts")) {
+			ImGui::Text("Unimplemented");
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Sounds")) {
+			ImGui::Text("Unimplemented");
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Music")) {
+			ImGui::Text("Unimplemented");
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Scenes")) {
+			ImGui::Text("Unimplemented");
+			ImGui::EndTabItem();
+		}
+		ImGui::EndTabBar();
+	}
+	ImGui::End();
 }
 
 void AssetWindow(AssetManager& manager, AssetRegistry& registry) {

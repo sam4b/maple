@@ -30,7 +30,7 @@ public:
 
 	/*Need to find a nice way to supply this to only who I want (friend class?)*/
 	AssetRegistry& GetRegistry() noexcept;
-	
+
 	nlohmann::json SaveRegistry() const noexcept;
 	/*
 		Returns an texture if the texture has been imported into Maple.
@@ -88,7 +88,7 @@ private:
 
 
 	//TODO: Potentially just calculate off the fly tbh by (uuid, id). Profile memory and cpu usage to decide.
-	std::unordered_map<uint64_t, TextureData> subTextures; 
+	std::unordered_map<uint64_t, TextureData> subTextures;
 
 	std::unordered_map<uint64_t, sf::Texture> textures;
 
@@ -99,4 +99,5 @@ private:
 	AssetRegistry registry;
 
 	friend bool AnimationImport(AssetManager&, AssetRegistry&);
+	friend void Assets(const AssetManager&);
 };
