@@ -121,8 +121,8 @@ void runEditorMode(const MapleProject& project) {
 
         ImGui::End();
 
-        Assets(*maple.systems.assetManager);
-        AssetWindow(*maple.systems.assetManager, maple.systems.assetManager->GetRegistry());
+        Assets(*maple.systems.assetManager, time.asSeconds());
+        AssetWindow(*maple.systems.assetManager);
         window.clear();
         ImGui::SFML::Render(window);
         window.display();

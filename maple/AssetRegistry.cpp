@@ -38,7 +38,7 @@ AssetProperties AssetRegistry::getProperties(const std::string& name) const noex
 	return nameToUUID.at(name);
 }
 
-std::string& AssetRegistry::getName(const uint64_t uuid) {
+const std::string& AssetRegistry::getName(const uint64_t uuid) const noexcept {
 	assert(exists(uuid));
 
 	return UUIDtoName.at(uuid);

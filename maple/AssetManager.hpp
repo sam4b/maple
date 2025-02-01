@@ -29,7 +29,7 @@ public:
 	void LoadRegistry(const nlohmann::json& json) noexcept;
 
 	/*Need to find a nice way to supply this to only who I want (friend class?)*/
-	AssetRegistry& GetRegistry() noexcept;
+	const AssetRegistry& GetRegistry() const noexcept;
 
 	nlohmann::json SaveRegistry() const noexcept;
 	/*
@@ -42,7 +42,7 @@ public:
 
 	const Animation& GetAnimation(const std::string& path);
 
-	const Animation& GetAnimaton(const uint64_t path);
+	const Animation& GetAnimation(const uint64_t path);
 
 	//Must be called after loading the registry. It is ill formed if not.
 	void LoadSceneAssets(const nlohmann::json& assetData, const std::filesystem::path& root);
@@ -98,6 +98,6 @@ private:
 
 	AssetRegistry registry;
 
-	friend bool AnimationImport(AssetManager&, AssetRegistry&);
-	friend void Assets(const AssetManager&);
+	friend bool AnimationImport(AssetManager&);
+	friend void Assets(AssetManager&, float);
 };

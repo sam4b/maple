@@ -39,6 +39,8 @@ struct AssetProperties {
 		case Spritesheet:
 			extraneous.spriteSheetData.~SpritesheetData();
 			break;
+		case Animation:
+			break;
 		default:
 			assert(false);
 			break;
@@ -146,6 +148,8 @@ struct AssetProperties {
 		case Spritesheet:
 			this->extraneous.spriteSheetData = old.extraneous.spriteSheetData;
 			break;
+		case Animation:
+			break;
 		default:
 			assert(false);
 			break;
@@ -165,6 +169,8 @@ struct AssetProperties {
 			break;
 		case Spritesheet:
 			this->extraneous.spriteSheetData = old.extraneous.spriteSheetData;
+			break;		
+		case Animation:
 			break;
 		default:
 			assert(false);

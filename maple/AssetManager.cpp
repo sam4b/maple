@@ -8,7 +8,7 @@ void AssetManager::LoadRegistry(const nlohmann::json& json) noexcept {
 }
 
 /*Need to find a nice way to supply this to only who I want (friend class?)*/
-AssetRegistry& AssetManager::GetRegistry() noexcept {
+const AssetRegistry& AssetManager::GetRegistry() const noexcept {
 	return registry;
 }
 
@@ -97,14 +97,13 @@ std::optional<Texture> AssetManager::GetTexture(const std::string& path) {
 	return GetTexture(registry.getProperties(path).uuid);
 }
 
-const Animation& AssetManager::GetAnimation(const std::string& path) {
-	assert(false);
-	return animations[0];
+const Animation& AssetManager::GetAnimation(const uint64_t uuid) {
+	return animations.at(uuid);
 }
 
-const Animation& AssetManager::GetAnimaton(const uint64_t path) {
-	assert(false);
-	return animations[0];
+const Animation& AssetManager::GetAnimation(const std::string& path) {
+	const auto properties = registry.getProperties(path);
+	return GetAnimation(properties.uuid);
 }
 
 //Must be called after loading the registry. It is ill formed if not.
@@ -149,7 +148,32 @@ void AssetManager::ImportAnimation(const std::string& name, const Animation data
 	assert(registry.getProperties(data.parent).type == AssetProperties::Type::Spritesheet);
 	assert(data.frameTime >= 0);
 
+	const auto uuid = generateUUID();
+	AssetProperties properties;
+	properties.type = AssetProperties::Type::Animation;
+	properties.uuid = uuid;
+	registry.insert(name, properties, uuid);
 
+	animations.insert({ uuid, data });
+
+	const std::filesystem::path path(std::format("{}/assets/animations/animation.json", projectRoot.string()));
+
+	if (!std::filesystem::exists(path)) {
+		std::ofstream out(path);
+		nlohmann::json json;
+		json["animations"][0] = data.toJson();
+		json["animations"][0]["uuid"] = uuid;
+		out << json;
+	}
+	else {
+		std::ifstream in(path);
+		nlohmann::json json = nlohmann::json::parse(in);
+		in.close();
+		json["animations"].push_back(data.toJson());
+		json["animations"].back()["uuid"] = uuid;
+		std::ofstream out(path);
+		out << json;
+	}
 }
 
 void AssetManager::ImportSoundEffect(const std::string& name, const std::filesystem::path& path) {
@@ -158,6 +182,8 @@ void AssetManager::ImportSoundEffect(const std::string& name, const std::filesys
 	assert(std::filesystem::exists(path));
 	const bool valid = sf::SoundBuffer().loadFromFile(path.string());
 	assert(valid);
+
+	assert(false);
 }
 
 void AssetManager::ImportMusic(const std::string& name, const std::filesystem::path& path) {
@@ -166,6 +192,8 @@ void AssetManager::ImportMusic(const std::string& name, const std::filesystem::p
 	assert(std::filesystem::exists(path));
 	const bool valid = sf::Music().openFromFile(path.string());
 	assert(valid);
+
+	assert(false);
 }
 
 void AssetManager::ImportFont(const std::string& name, const std::filesystem::path& path) {
@@ -174,6 +202,8 @@ void AssetManager::ImportFont(const std::string& name, const std::filesystem::pa
 	assert(std::filesystem::exists(path));
 	const bool valid = sf::Font().loadFromFile(path.string());
 	assert(valid);
+
+	assert(false);
 }
 
 void AssetManager::ImportSpritesheet(const std::filesystem::path& path, const std::string& name, const SpritesheetData data) {
@@ -273,8 +303,7 @@ void AssetManager::LoadAllAnimations(const std::filesystem::path& path) {
 
 		assert(!animations.contains(uuid)); //Duplicates.
 
-		Animation a;
-		a.fromJson(animation);
+		Animation a = Animation::fromJson(animation);
 
 		animations[uuid] = a;
 	}
@@ -303,7 +332,7 @@ void AssetManager::LoadAllAssetsInRegistry(const std::filesystem::path& projectR
 		}
 	}
 
-	LoadAllAnimations(std::format("{}/assets/animations.json", projectRoot.string()));
+	LoadAllAnimations(std::format("{}/assets/animations/animation.json", projectRoot.string()));
 }
 
 //Precondition: path exists and is a path to a PNG. 

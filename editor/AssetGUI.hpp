@@ -5,7 +5,7 @@
 #include <imfilebrowser.h>
 #include <imgui-SFML.h>
 
-bool AnimationImport(AssetManager& manager, AssetRegistry& registry) {
+bool AnimationImport(AssetManager& manager) {
 
 	static struct AnimationCreatorData {
 		bool selected;
@@ -21,8 +21,8 @@ bool AnimationImport(AssetManager& manager, AssetRegistry& registry) {
 	if (!animData.selected) {
 		int textureCount = 0;
 		for (const auto& [id, texture] : manager.textures) {
-			const auto& name = registry.getName(id);
-			const auto properties = registry.getProperties(name);
+			const auto& name = manager.GetRegistry().getName(id);
+			const auto properties = manager.GetRegistry().getProperties(name);
 
 			if (properties.type != AssetProperties::Type::Spritesheet) continue;
 
@@ -42,7 +42,7 @@ bool AnimationImport(AssetManager& manager, AssetRegistry& registry) {
 			textureCount++;
 			ImGui::PopID();
 		}
-	
+
 		if (textureCount == 0) {
 			std::cout << "No spritesheets loaded!\n";
 			return false;
@@ -52,12 +52,32 @@ bool AnimationImport(AssetManager& manager, AssetRegistry& registry) {
 		static struct AnimationData {
 			std::string name;
 			std::vector<uint64_t> ids; //Could optimise to be a smaller index into the same texture and calculate on fly?
+			int frameTime;
 		} data;
 
 		ImGui::Begin("Animation Creator");
 		ImGui::InputText("Name", &data.name);
+		ImGui::InputInt("Frame time", &data.frameTime);
+		if (ImGui::Button("Create")) {
+			const uint64_t id = generateUUID();
 
+			if (!data.ids.empty()) {
+				manager.ImportAnimation(data.name, Animation{
+					.parent = animData.textureID,
+					.ids = data.ids,
+					.frameTime = data.frameTime
+					});
+				ImGui::End();
+				return false;
+			}
 
+		}
+
+		if (ImGui::Button("Cancel")) {
+			animData.selected = false;
+			ImGui::End();
+			return false;
+		}
 
 		if (!data.ids.empty()) {
 			ImGui::Text("Frames");
@@ -73,7 +93,7 @@ bool AnimationImport(AssetManager& manager, AssetRegistry& registry) {
 			ImGui::NewLine();
 		}
 
-		const auto& properties = registry.getProperties(animData.textureID);
+		const auto& properties = manager.GetRegistry().getProperties(animData.textureID);
 		assert(properties.type == AssetProperties::Type::Spritesheet);
 		const auto& spriteSheetData = properties.extraneous.spriteSheetData;
 		const sf::Texture& tex = manager.textures.at(animData.textureID);
@@ -84,8 +104,8 @@ bool AnimationImport(AssetManager& manager, AssetRegistry& registry) {
 
 		for (int i = 0; i < numIDS; i++) {
 			sf::Sprite sprite;
-			const std::string name = std::format("{}_{}", registry.getName(animData.textureID), i);
-			const AssetProperties properties = registry.getProperties(name);
+			const std::string name = std::format("{}_{}", manager.GetRegistry().getName(animData.textureID), i);
+			const AssetProperties properties = manager.GetRegistry().getProperties(name);
 			const auto uuid = properties.uuid;
 			sprite.setTexture(tex);
 			sprite.setTextureRect(manager.GetTexture(name).value().rect);
@@ -98,29 +118,12 @@ bool AnimationImport(AssetManager& manager, AssetRegistry& registry) {
 			}
 			ImGui::PopID();
 		}
-
-		if (ImGui::Button("Create")) {
-			const uint64_t id = generateUUID();
-
-			if (data.ids.empty()) {
-				assert(false);
-			}
-			ImGui::End();
-			return false;
-
-		}
-
-		if (ImGui::Button("Cancel")) {
-			animData.selected = false;
-			ImGui::End();
-			return false;
-		}
 		ImGui::End();
 	}
 	return true;
 }
 
-bool SpritesheetImport(AssetManager& manager, AssetRegistry& registry) {
+bool SpritesheetImport(AssetManager& manager) {
 	static struct TextureImportData {
 		TextureImportData() {
 			imported = false;
@@ -207,7 +210,7 @@ bool SpritesheetImport(AssetManager& manager, AssetRegistry& registry) {
 
 }
 
-bool TextureImport(AssetManager& manager, AssetRegistry& registry) {
+bool TextureImport(AssetManager& manager) {
 	static struct TextureImportData {
 		TextureImportData() {
 			imported = false;
@@ -283,12 +286,16 @@ bool TextureImport(AssetManager& manager, AssetRegistry& registry) {
 	return true;
 }
 
-inline void Assets(const AssetManager& manager) {
+inline void Assets(AssetManager& manager, float dt) {
 	ImGui::Begin("Asset Window");
 	if (ImGui::BeginTabBar("Types")) {
 		if (ImGui::BeginTabItem("Textures/Spritesheets")) {
 			for (const auto& [uuid, texture] : manager.textures) {
 				ImGui::PushID(uuid);
+				sf::Sprite sprite;
+				sprite.setTexture(texture);
+				ImGui::Text(manager.GetRegistry().getName(uuid).c_str());
+				ImGui::Image(sprite, { 64, 64 });
 
 				ImGui::PopID();
 			}
@@ -306,9 +313,46 @@ inline void Assets(const AssetManager& manager) {
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Animations")) {
+			static std::unordered_map<uint64_t, AnimationStateComponent> states;
 
-			for (auto i : manager.animations) {
+			for (const auto& [uuid, animation] : manager.animations) {
+				assert(animation.ids.size() >= 1);
+				ImGui::PushID(uuid);
+				sf::Sprite sprite;
+				if (states.contains(uuid)) {
+					AnimationStateComponent& component = states.at(uuid);
+					
+					component.lastUpdate -= dt * 100;
 
+					if (component.lastUpdate <= 0) {
+						component.lastUpdate = animation.frameTime;
+						component.offset++;
+						if (component.offset == animation.ids.size()) component.offset = 0;
+					}
+					
+					const Texture texture = manager.GetTexture(animation.ids[component.offset]).value();
+					sprite.setTexture(*texture.texture);
+					sprite.setTextureRect(texture.rect);
+
+					if (ImGui::Button("Pause")) {
+						states.erase(uuid);
+					}
+				}
+				else {
+					const Texture texture = manager.GetTexture(animation.ids[0]).value();
+
+					sprite.setTexture(*texture.texture);
+					sprite.setTextureRect(texture.rect);
+					if (ImGui::Button("Play")) {
+						states[uuid];
+					}
+
+					
+				}
+
+				ImGui::Image(sprite, { 64, 64 });
+
+				ImGui::PopID();
 			}
 			ImGui::EndTabItem();
 		}
@@ -333,7 +377,8 @@ inline void Assets(const AssetManager& manager) {
 	ImGui::End();
 }
 
-void AssetWindow(AssetManager& manager, AssetRegistry& registry) {
+void AssetWindow(AssetManager& manager) {
+	const AssetRegistry& registry = manager.GetRegistry();
 	constexpr int size = 3;
 
 	const char* arr[size] = { "Texture", "Animation", "Spritesheet"};
@@ -382,7 +427,7 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry) {
 	}
 	else {
 		if (ImGui::BeginPopupModal(textureString)) {
-			const bool continuing = TextureImport(manager, registry);
+			const bool continuing = TextureImport(manager);
 			if (!continuing) {
 				ImGui::CloseCurrentPopup();
 				showAssetTypeScreen = true;
@@ -391,7 +436,7 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry) {
 
 		}
 		else if (ImGui::BeginPopupModal(animationString)) {
-			const bool continuing = AnimationImport(manager, registry);
+			const bool continuing = AnimationImport(manager);
 			if (!continuing) {
 				ImGui::CloseCurrentPopup();
 				showAssetTypeScreen = true;
@@ -399,7 +444,7 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry) {
 			ImGui::EndPopup();
 		}
 		else if (ImGui::BeginPopupModal(spritesheetString)) {
-			const bool continuing = SpritesheetImport(manager, registry);
+			const bool continuing = SpritesheetImport(manager);
 			if (!continuing) {
 				ImGui::CloseCurrentPopup();
 				showAssetTypeScreen = true;

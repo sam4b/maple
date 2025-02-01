@@ -20,7 +20,7 @@ public:
 
 	AssetProperties getProperties(const std::string& name) const noexcept;
 
-	std::string& getName(const uint64_t uuid);
+	const std::string& getName(const uint64_t uuid) const noexcept;
 
 	void LoadRegistry(const nlohmann::json& assetData);
 

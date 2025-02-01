@@ -20,10 +20,12 @@ struct Animation {
 		return json;
 	}
 
-	static Animation fromJson(const nlohmann::json& json) noexcept {
+	[[nodiscard]] static Animation fromJson(const nlohmann::json& json) noexcept {
 		Animation data;
 		data.frameTime = json["frameTime"];
-		data.ids = json["ids"].get < std::vector<uint64_t>>();
+		for (uint64_t id : json["ids"]) {
+			data.ids.push_back(id);
+		}
 		data.parent = json["parent"];
 		return data;
 	}
