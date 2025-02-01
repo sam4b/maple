@@ -8,7 +8,7 @@ int maple_main(const std::filesystem::path& path) {
 
 Maple LoadProject(const MapleProject& project) {
     Maple maple;
-    maple.systems.assetManager = new AssetManager();
+    maple.systems.assetManager = new AssetManager(project.root);
     maple.systems.entityManager = new EntityManager();
     maple.systems.scriptManager = new ScriptManager();
 

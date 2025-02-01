@@ -16,11 +16,16 @@ struct Texture {
 	sf::Texture* texture;
 	sf::IntRect rect;
 };
+
+
 /*
 	Consider ref-counted handle system. Also support for other types of assets + subtextures (tilemaps?).
 */
 class AssetManager {
 public:
+	AssetManager() = delete;
+	AssetManager(const std::filesystem::path& path);
+
 	void LoadRegistry(const nlohmann::json& json) noexcept;
 
 	/*Need to find a nice way to supply this to only who I want (friend class?)*/
@@ -55,23 +60,12 @@ public:
 
 	void ImportFont(const std::string& name, const std::filesystem::path& path);
 
-	void ImportSpritesheet(const std::filesystem::path& path, const std::string& name, const SpritesheetData data, const std::filesystem::path& projectRoot);
-
-	void LoadTexture(const uint64_t uuid, const std::filesystem::path& projectRoot);
-
-	void LoadSubTexture(const uint64_t uuid, const std::filesystem::path& projectRoot, const SubTextureMetadata data);
-
-	void LoadSpritesheet(const uint64_t uuid, const std::filesystem::path& projectRoot, const SpritesheetData data);
-
-	void LoadAllAnimations(const std::filesystem::path& path);
+	void ImportSpritesheet(const std::filesystem::path& path, const std::string& name, const SpritesheetData data);
 
 	void LoadAllAssetsInRegistry(const std::filesystem::path& projectRoot);
 
 	//Precondition: path exists and is a path to a PNG. 
-	void ImportTexture(const std::filesystem::path& path, const std::string& name, const std::filesystem::path& projectRoot);
-
-	void ImportSubTextures(const uint64_t spriteSheetUUID, const SpritesheetData& spriteSheetData, const std::filesystem::path& projectRoot);
-
+	void ImportTexture(const std::filesystem::path& path, const std::string& name);
 private:
 	struct TextureData {
 		Texture texture;
@@ -80,18 +74,29 @@ private:
 
 	//Seperated due to diff meaning.
 
+	void ImportSubTextures(const uint64_t spriteSheetUUID, const SpritesheetData& spriteSheetData);
 
-	std::unordered_map<uint64_t, TextureData> subTextures; //TODO: Potentially just calculate off the fly tbh by (uuid, id). Profile memory and cpu usage to decide.
+	void LoadFont(const uint64_t uuid);
+
+	void LoadTexture(const uint64_t uuid);
+
+	void LoadSubTexture(const uint64_t uuid);
+
+	void LoadSpritesheet(const uint64_t uuid);
+
+	void LoadAllAnimations(const std::filesystem::path& path);
+
+
+	//TODO: Potentially just calculate off the fly tbh by (uuid, id). Profile memory and cpu usage to decide.
+	std::unordered_map<uint64_t, TextureData> subTextures; 
 
 	std::unordered_map<uint64_t, sf::Texture> textures;
 
-	std::unordered_map<uint64_t, sf::Texture> spritesheets;
-
-
 	std::unordered_map<uint64_t, Animation> animations;
 
+	std::filesystem::path projectRoot;
 
 	AssetRegistry registry;
 
-	friend bool AnimationImport(AssetManager&,AssetRegistry&,const std::filesystem::path&);
+	friend bool AnimationImport(AssetManager&, AssetRegistry&);
 };

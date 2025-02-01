@@ -1,5 +1,8 @@
 #include "AssetManager.hpp"
 
+AssetManager::AssetManager(const std::filesystem::path& path) : projectRoot(path) {
+}
+
 void AssetManager::LoadRegistry(const nlohmann::json& json) noexcept {
 	registry.LoadRegistry(json);
 }
@@ -26,8 +29,48 @@ std::optional<Texture> AssetManager::GetTexture(const uint64_t id) {
 
 		return { textureData.texture };
 	}
+	else if (textures.contains(id)) {
+		sf::Texture& texture = textures.at(id);
+
+		return Texture {
+			.texture = &texture,
+			.rect = sf::IntRect{0, 0, (int)texture.getSize().x, (int)texture.getSize().y}
+		};
+	}
+
+	//Not loaded
 
 	const AssetProperties properties = registry.getProperties(id);
+
+	if (properties.type == AssetProperties::Type::Texture) {
+		LoadTexture(id);
+
+		assert(textures.contains(id));
+
+		sf::Texture& texture = textures.at(id);
+
+		return Texture {
+			.texture = &texture,
+			.rect = sf::IntRect{0, 0, (int)texture.getSize().x, (int)texture.getSize().y}
+		};
+	}
+	else if (properties.type == AssetProperties::Type::SubTexture) { //Tile in a spritesheet
+		const uint64_t parentID = properties.extraneous.subTextureData.parentUUID;
+
+		LoadTexture(parentID);
+
+		TextureData data;
+		data.parent = parentID;
+		data.texture.rect = properties.extraneous.subTextureData.rect;
+		data.texture.texture = &textures.at(parentID);
+
+		subTextures[id] = data;
+
+		return subTextures.at(id).texture;
+	}
+	else {
+		//Log and return an empty optional.
+	}
 
 	assert(properties.type == AssetProperties::Type::SubTexture);
 
@@ -91,7 +134,7 @@ void AssetManager::LoadSceneAssets(const nlohmann::json& assetData, const std::f
 			data.parent = parent;
 			data.texture.rect = subData.rect;
 			data.texture.texture = &textures[parent];
-			subTextures[uint64_t(id)] = data;
+			subTextures[id] = data;
 		}
 		else {
 			assert(false);
@@ -99,17 +142,14 @@ void AssetManager::LoadSceneAssets(const nlohmann::json& assetData, const std::f
 	}
 }
 
-/*
-	These two methods have zero to do with runtime loading of images. This is designed to register an asset as existing, and allow for runtime loading.
-	For runtime loading, use AssetManager::GetTexture(uint64_t) or AssetManager::GetTexture(std::string).
-*/
-
 void AssetManager::ImportAnimation(const std::string& name, const Animation data) {
 	//Save to disk
 	assert(data.ids.size() >= 1);
 	assert(registry.exists(data.parent));
 	assert(registry.getProperties(data.parent).type == AssetProperties::Type::Spritesheet);
 	assert(data.frameTime >= 0);
+
+
 }
 
 void AssetManager::ImportSoundEffect(const std::string& name, const std::filesystem::path& path) {
@@ -136,7 +176,7 @@ void AssetManager::ImportFont(const std::string& name, const std::filesystem::pa
 	assert(valid);
 }
 
-void AssetManager::ImportSpritesheet(const std::filesystem::path& path, const std::string& name, const SpritesheetData data, const std::filesystem::path& projectRoot) {
+void AssetManager::ImportSpritesheet(const std::filesystem::path& path, const std::string& name, const SpritesheetData data) {
 	//Validate
 	assert(path.extension() == ".png");
 	assert(std::filesystem::exists(path));
@@ -148,8 +188,9 @@ void AssetManager::ImportSpritesheet(const std::filesystem::path& path, const st
 	const auto uuid = generateUUID();
 
 	AssetProperties properties;
-	properties.type = AssetProperties::Type::Texture;
+	properties.type = AssetProperties::Type::Spritesheet;
 	properties.uuid = uuid;
+	properties.extraneous.spriteSheetData = data;
 
 	{
 
@@ -159,28 +200,36 @@ void AssetManager::ImportSpritesheet(const std::filesystem::path& path, const st
 		std::filesystem::copy(path, newPath); //Can fail (throws).
 	}
 
+
+
 	registry.insert(name, properties, uuid);
+	LoadSpritesheet(uuid);
+	ImportSubTextures(uuid, data);
+}
 
-	//Save to disk (maintain durability).
+void AssetManager::LoadFont(const uint64_t uuid)
+{
 
-	std::ofstream out(projectRoot / "assetregistry.json");
-	out << registry.SaveRegistry();
 }
 
 
 
-void AssetManager::LoadTexture(const uint64_t uuid, const std::filesystem::path& projectRoot) {
+void AssetManager::LoadTexture(const uint64_t uuid) {
 	assert(registry.exists(uuid));
+
+	assert(registry.getProperties(uuid).type == AssetProperties::Type::Texture);
 
 	if (textures.contains(uuid)) return;
 
 	assert(textures[uuid].loadFromFile(std::format("{}/assets/textures/{}.png", projectRoot.string(), uuid)));
 }
 
-void AssetManager::LoadSubTexture(const uint64_t uuid, const std::filesystem::path& projectRoot, const SubTextureMetadata data) {
-	LoadTexture(data.parentUUID, projectRoot);
-
+void AssetManager::LoadSubTexture(const uint64_t uuid) {
 	assert(registry.exists(uuid));
+	const auto properties = registry.getProperties(uuid);
+	assert(properties.type == AssetProperties::Type::SubTexture);
+	const auto data = properties.extraneous.subTextureData;
+	LoadSpritesheet(data.parentUUID);
 	assert(textures.contains(data.parentUUID));
 
 	if (subTextures.contains(uuid)) return;
@@ -194,13 +243,15 @@ void AssetManager::LoadSubTexture(const uint64_t uuid, const std::filesystem::pa
 	subTextures[uuid] = tex;
 }
 
-void AssetManager::LoadSpritesheet(const uint64_t uuid, const std::filesystem::path& projectRoot, const SpritesheetData data) {
-	if (spritesheets.contains(uuid)) {
-		//Assume we have loaded all subtextures already too.
+/*Does *not* load the tiles into memory, it only loads the texture they depend on.*/
+void AssetManager::LoadSpritesheet(const uint64_t uuid) {
+	assert(registry.getProperties(uuid).type == AssetProperties::Type::Spritesheet);
+
+	if (textures.contains(uuid)) {
 		return;
 	}
 
-	const auto success = spritesheets[uuid].loadFromFile(std::format("{}/assets/spritesheets/{}.png", projectRoot.string(), uuid));
+	const auto success = textures[uuid].loadFromFile(std::format("{}/assets/textures/{}.png", projectRoot.string(), uuid));
 
 	assert(success);
 }
@@ -236,15 +287,15 @@ void AssetManager::LoadAllAssetsInRegistry(const std::filesystem::path& projectR
 		switch (properties.type) {
 			using enum AssetProperties::Type;
 		case Texture:
-			LoadTexture(uuid, projectRoot);
+			LoadTexture(uuid);
 			break;
 		case SubTexture:
-			LoadSubTexture(uuid, projectRoot, properties.extraneous.subTextureData);
+			LoadSubTexture(uuid);
 			break;
 		case Animation: //We just load all animations now tbh
 			break;
 		case Spritesheet:
-			LoadSpritesheet(uuid, projectRoot, properties.extraneous.spriteSheetData);
+			LoadSpritesheet(uuid);
 			break;
 		default:
 			assert(false);
@@ -256,7 +307,7 @@ void AssetManager::LoadAllAssetsInRegistry(const std::filesystem::path& projectR
 }
 
 //Precondition: path exists and is a path to a PNG. 
-void AssetManager::ImportTexture(const std::filesystem::path& path, const std::string& name, const std::filesystem::path& projectRoot) {
+void AssetManager::ImportTexture(const std::filesystem::path& path, const std::string& name) {
 	//Validate
 	assert(path.extension() == ".png");
 	assert(std::filesystem::exists(path));
@@ -281,19 +332,20 @@ void AssetManager::ImportTexture(const std::filesystem::path& path, const std::s
 
 	registry.insert(name, properties, uuid);
 
+	LoadTexture(uuid);
 	//Save to disk (maintain durability).
 
 	std::ofstream out(projectRoot / "assetregistry.json");
 	out << registry.SaveRegistry();
 }
 
-void AssetManager::ImportSubTextures(const uint64_t spriteSheetUUID, const SpritesheetData& spriteSheetData, const std::filesystem::path& projectRoot) {
+void AssetManager::ImportSubTextures(const uint64_t spriteSheetUUID, const SpritesheetData& spriteSheetData) {
 	assert(registry.exists(spriteSheetUUID));
 	const AssetProperties parentProperties = registry.getProperties(spriteSheetUUID);
 
 	const std::string& spritesheetName = registry.getName(spriteSheetUUID);
 
-	assert(parentProperties.type == AssetProperties::Type::Texture);
+	assert(parentProperties.type == AssetProperties::Type::Spritesheet);
 
 	//assert(textures.contains(parentID)); Actually, doesn't have to be loaded in-memory at the time of registration. 
 
@@ -314,6 +366,8 @@ void AssetManager::ImportSubTextures(const uint64_t spriteSheetUUID, const Sprit
 		properties.type = AssetProperties::Type::SubTexture;
 
 		registry.insert(name, properties, uuid); //Doesn't load, just states existence.
+
+		LoadSubTexture(uuid);
 	}
 
 	//Save to disk (maintain durability).

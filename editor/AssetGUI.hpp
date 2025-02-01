@@ -5,7 +5,7 @@
 #include <imfilebrowser.h>
 #include <imgui-SFML.h>
 
-bool AnimationImport(AssetManager& manager, AssetRegistry& registry, const std::filesystem::path& projectRoot) {
+bool AnimationImport(AssetManager& manager, AssetRegistry& registry) {
 
 	static struct AnimationCreatorData {
 		bool selected;
@@ -120,7 +120,7 @@ bool AnimationImport(AssetManager& manager, AssetRegistry& registry, const std::
 	return true;
 }
 
-bool SpritesheetImport(AssetManager& manager, AssetRegistry& registry, const std::filesystem::path& projectRoot) {
+bool SpritesheetImport(AssetManager& manager, AssetRegistry& registry) {
 	static struct TextureImportData {
 		TextureImportData() {
 			imported = false;
@@ -163,9 +163,7 @@ bool SpritesheetImport(AssetManager& manager, AssetRegistry& registry, const std
 
 		if (ImGui::Button("Import")) {
 			if (importData.imported) {
-				manager.ImportTexture(importData.path, importData.name, projectRoot);
-				const auto UUID = registry.getProperties(importData.name).uuid;
-				manager.ImportSubTextures(UUID, spriteSheetData, projectRoot);
+				manager.ImportSpritesheet(importData.path, importData.name, spriteSheetData);
 				return false;
 			}
 		}
@@ -207,7 +205,7 @@ bool SpritesheetImport(AssetManager& manager, AssetRegistry& registry, const std
 
 }
 
-bool TextureImport(AssetManager& manager, AssetRegistry& registry, const std::filesystem::path& projectRoot) {
+bool TextureImport(AssetManager& manager, AssetRegistry& registry) {
 	static struct TextureImportData {
 		TextureImportData() {
 			imported = false;
@@ -242,7 +240,7 @@ bool TextureImport(AssetManager& manager, AssetRegistry& registry, const std::fi
 
 		if (ImGui::Button("Import")) {
 			if (importData.imported) {
-				manager.ImportTexture(importData.path, importData.name, projectRoot);
+				manager.ImportTexture(importData.path, importData.name);
 				return false;
 			}
 		}
@@ -283,7 +281,7 @@ bool TextureImport(AssetManager& manager, AssetRegistry& registry, const std::fi
 	return true;
 }
 
-void AssetWindow(AssetManager& manager, AssetRegistry& registry, const std::filesystem::path& projectRoot) {
+void AssetWindow(AssetManager& manager, AssetRegistry& registry) {
 	constexpr int size = 3;
 
 	const char* arr[size] = { "Texture", "Animation", "Spritesheet"};
@@ -332,7 +330,7 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry, const std::file
 	}
 	else {
 		if (ImGui::BeginPopupModal(textureString)) {
-			const bool continuing = TextureImport(manager, registry, projectRoot);
+			const bool continuing = TextureImport(manager, registry);
 			if (!continuing) {
 				ImGui::CloseCurrentPopup();
 				showAssetTypeScreen = true;
@@ -341,7 +339,7 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry, const std::file
 
 		}
 		else if (ImGui::BeginPopupModal(animationString)) {
-			const bool continuing = AnimationImport(manager, registry, projectRoot);
+			const bool continuing = AnimationImport(manager, registry);
 			if (!continuing) {
 				ImGui::CloseCurrentPopup();
 				showAssetTypeScreen = true;
@@ -349,7 +347,7 @@ void AssetWindow(AssetManager& manager, AssetRegistry& registry, const std::file
 			ImGui::EndPopup();
 		}
 		else if (ImGui::BeginPopupModal(spritesheetString)) {
-			const bool continuing = SpritesheetImport(manager, registry, projectRoot);
+			const bool continuing = SpritesheetImport(manager, registry);
 			if (!continuing) {
 				ImGui::CloseCurrentPopup();
 				showAssetTypeScreen = true;
