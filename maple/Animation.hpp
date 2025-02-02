@@ -37,11 +37,15 @@ struct AnimationStateComponent : public ComponentMetadata {
 	int lastUpdate;
 	int offset;
 	uint64_t animationID;
+	uint64_t priorTexture;
+	bool playForever;
 
 	void FromJson(const nlohmann::json& json, Systems context) noexcept override {
 		lastUpdate = json["lastUpdate"];
 		offset = json["offset"];
 		animationID = json["animationID"];
+		playForever = json["playForever"];
+		priorTexture = json["priorTexture"];
 	}
 
 	[[nodiscard]] nlohmann::json ToJson() const noexcept override {
@@ -49,6 +53,8 @@ struct AnimationStateComponent : public ComponentMetadata {
 		json["offset"] = offset;
 		json["animationID"] = animationID;
 		json["lastUpdate"] = lastUpdate;
+		json["playForever"] = playForever;
+		json["priorTexture"] = priorTexture;
 		return json;
 	}
 

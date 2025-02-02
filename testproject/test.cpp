@@ -1,26 +1,67 @@
 #include <maple.hpp>
 #include <editor.hpp>
 
+
+/*
+    Temp here, should go in engine
+*/
+void AddAnimation(const uint64_t uuid, Entity entity, const Systems systems) {
+    assert(!entity.hasComponent<AnimationStateComponent>());
+    const auto& animation = systems.assetManager->GetAnimation(uuid);
+    auto& state = entity.addComponent<AnimationStateComponent>();
+
+    state.animationID = uuid;
+    state.offset = 0;
+    state.lastUpdate = animation.frameTime;
+    state.priorTexture = entity.getComponent<SpriteComponent>().texture;
+    state.playForever = false;
+}
+
+void AddAnimation(const std::string& animation, Entity entity, const Systems systems) {
+    assert(entity.hasComponent<SpriteComponent>());
+    assert(entity.hasComponent<TransformComponent>());
+    const auto properties = systems.assetManager->GetRegistry().getProperties(animation);
+    assert(properties.type == AssetProperties::Type::Animation);
+    AddAnimation(properties.uuid, entity, systems);
+}
+
+class SylvanScript : public Script {
+    // Inherited via Script
+    void onAttach(Systems& manager) override
+    {
+        const auto texture = manager.assetManager->GetTexture("sylvan_spritesheet_3").value();
+
+        SpriteComponent& sprite = entity.addComponent<SpriteComponent>();
+        sprite.rectangle.setTexture(texture.texture);
+        sprite.rectangle.setTextureRect(texture.rect);
+        sprite.rectangle.setSize({ 66, 66 });
+        sprite.rectangle.setPosition(0, 0);
+
+        TransformComponent& trans = entity.addComponent<TransformComponent>();;
+        trans.pos = { 0, 0 };
+        trans.velocity = { 0, 0 };
+    }
+    void onDetach() override
+    {
+    }
+    void onUpdate(const float dt, Systems& view, Scene* scene) override
+    {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+            if (!entity.hasComponent<AnimationStateComponent>()) {
+                AddAnimation("sylvan_walk", entity, view);
+            }
+        }
+    }
+};
+REGISTER_SCRIPT(SylvanScript);
+
 class TestScene : public Scene {
     void draw(RenderTarget& target, Systems view) noexcept override
     {
     }
     void update(std::queue<sf::Event> events, const sf::Vector2i mousePos, const float dt, Systems& view, const sf::Time time) noexcept override
     {
-        ImGui::Begin("A");
-        if (ImGui::Button("Increment")) {
-            static int i = 0;
-            for (const auto entity : view.entityManager->getEntities()) {
-                if (view.entityManager->hasComponent<SpriteComponent>(entity)) {
-                    const Texture t = view.assetManager->GetTexture(std::format("spritesheet_{}", i)).value();
-                    auto& sprite = view.entityManager->getComponent<SpriteComponent>(entity);
-                    sprite.rectangle.setTextureRect(t.rect);
-                    i++;
-                }
-            }
-        }
-        ImGui::End();
-
+   
 
     }
     sf::Vector2i getDrawSize() const noexcept override
@@ -29,16 +70,10 @@ class TestScene : public Scene {
     }
     void onSceneCreate(Systems view, const nlohmann::json& savedData) override
     {
-        /*
-         Entity entity = Entity::createEntity();
-         SpriteComponent& sprite = entity.addComponent<SpriteComponent>();
-         const Texture texture = view.assetManager->GetTexture("spritesheet_1000").value();
-         sprite.rectangle.setTexture(texture.texture);
-         sprite.rectangle.setTextureRect(texture.rect);
 
-         sprite.rectangle.setSize({ 128, 128 });
-         sprite.rectangle.setPosition(0, 0);*/
+        Entity entity = Entity::createEntity();
 
+        view.scriptManager->addScript<SylvanScript>(entity, view);
 
     }
     void save() const noexcept override

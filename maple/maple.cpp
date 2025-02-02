@@ -137,6 +137,21 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
         }
     }
 
+    for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<AnimationStateComponent>(); })) {
+        assert(entity.hasComponent<SpriteComponent>());
+        assert(entity.hasComponent<TransformComponent>());
+
+        const uint64_t subtract = time.asMilliseconds();
+
+        auto& component = entity.getComponent<AnimationStateComponent>();
+
+        //update frame etc
+
+        //if looping, continue
+        //else revert to previous state?
+        
+    }
+
     for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<SpriteComponent>(); })) {
         target.draw(entity.getComponent<SpriteComponent>().rectangle);
     }

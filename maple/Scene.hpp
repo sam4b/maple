@@ -32,6 +32,7 @@ public:
     }
 
 
+
     bool moveWouldCauseCollision(Entity entity, sf::Vector2f velocity, float dt, Systems context) {
         if (velocity == sf::Vector2f{0, 0}) return false;
         assert(entity.hasComponent<AABBCollisionComponent>());

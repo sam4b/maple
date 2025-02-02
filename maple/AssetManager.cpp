@@ -57,7 +57,7 @@ std::optional<Texture> AssetManager::GetTexture(const uint64_t id) {
 	else if (properties.type == AssetProperties::Type::SubTexture) { //Tile in a spritesheet
 		const uint64_t parentID = properties.extraneous.subTextureData.parentUUID;
 
-		LoadTexture(parentID);
+		LoadSpritesheet(parentID);
 
 		TextureData data;
 		data.parent = parentID;
