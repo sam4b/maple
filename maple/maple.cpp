@@ -53,6 +53,7 @@ Maple LoadProject(const MapleProject& project) {
 
     maple.currentScene = ParseScene(json, scenes, maple.systems, project.root);
 
+    maple.systems.assetManager->LoadAllAssetsInRegistry(project.root);
     return maple;
 }
 
@@ -141,10 +142,35 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
         assert(entity.hasComponent<SpriteComponent>());
         assert(entity.hasComponent<TransformComponent>());
 
-        const uint64_t subtract = time.asMilliseconds();
+        const uint64_t subtract = time.asSeconds() * 100;
 
         auto& component = entity.getComponent<AnimationStateComponent>();
 
+        const auto& animation = context.assetManager->GetAnimation(component.animationID);
+
+        component.lastUpdate -= time.asSeconds() * 100;
+
+        if (component.lastUpdate <= 0) {
+            component.offset++;
+            component.lastUpdate = animation.frameTime;
+            if (component.offset == animation.ids.size()) {
+                component.offset = 0;
+            }
+        }
+
+
+        if (component.lastUpdate <= 0) {
+            component.lastUpdate = animation.frameTime;
+            component.offset++;
+            if (component.offset == animation.ids.size()) component.offset = 0;
+        } 
+
+        const auto tex = context.assetManager->GetTexture(animation.ids[component.offset]).value();
+
+        auto& sprite = entity.getComponent<SpriteComponent>();
+
+        sprite.rectangle.setTextureRect(tex.rect);
+        sprite.rectangle.setTexture(tex.texture);
         //update frame etc
 
         //if looping, continue

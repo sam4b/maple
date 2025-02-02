@@ -4,7 +4,6 @@
 void runEditorMode(const MapleProject& project) {
 
     Maple maple = LoadProject(project);
-    maple.systems.assetManager->LoadAllAssetsInRegistry(project.root);
 
     bool shouldClose = false;
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Editor");
