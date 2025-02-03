@@ -63,3 +63,9 @@ struct AnimationStateComponent : public ComponentMetadata {
 	}
 };
 REGISTER_COMPONENT(AnimationStateComponent);
+
+//If you call StopAnimation(entity), and a TransitionComponent is attached, the entity will either become that sprite, or begin a new animation.
+struct TransitionComponent {
+	uint64_t uuid;
+	AssetProperties::Type type;
+};

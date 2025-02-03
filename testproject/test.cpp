@@ -25,8 +25,59 @@ void AddAnimation(const std::string& animation, Entity entity, const Systems sys
     AddAnimation(properties.uuid, entity, systems);
 }
 
-class SylvanScript : public Script {
+
+struct PossessedComponent : public ComponentMetadata {
+    uint64_t posessor;
+    int timeInMillis;
+
+    // Inherited via ComponentMetadata
+    void FromJson(const nlohmann::json& json, Systems context) noexcept override
+    {
+    }
+    nlohmann::json ToJson() const noexcept override
+    {
+        return nlohmann::json();
+    }
+};
+REGISTER_COMPONENT(PossessedComponent);
+
+class Bat : public Script {
     // Inherited via Script
+    void onAttach(Systems& manager) override
+    {
+        auto& trans = entity.addComponent<TransformComponent>();
+        auto& sprite = entity.addComponent<SpriteComponent>();
+
+        trans.pos = { 256, 0 };
+        trans.velocity = { 0, 0 };
+
+        sprite.rectangle.setFillColor(sf::Color::Red);
+        sprite.rectangle.setPosition(trans.pos);
+        sprite.rectangle.setSize({ 64, 64 });
+    }
+    void onDetach() override
+    {
+    }
+    void onUpdate(const float dt, Systems& view, Scene* scene) override
+    {
+        if (entity.hasComponent<PossessedComponent>()) {
+            auto& trans = entity.getComponent<TransformComponent>();
+            auto& possessed = entity.getComponent<PossessedComponent>();
+            possessed.timeInMillis -= dt * 100;
+            if (possessed.timeInMillis < 0) {
+                view.entityManager->removeComponent<PossessedComponent>(entity.getID());
+            }
+            else {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+                    trans.velocity = { -100 , 0 };
+                }
+            }
+        }
+    }
+};
+REGISTER_SCRIPT(Bat);
+
+class SylvanScript : public Script {
     void onAttach(Systems& manager) override
     {
         const auto texture = manager.assetManager->GetTexture("sylvan_spritesheet_3").value();
@@ -46,16 +97,27 @@ class SylvanScript : public Script {
     }
     void onUpdate(const float dt, Systems& view, Scene* scene) override
     {
+        bool iterated = false;
+        for (const auto& a : scene->getEntities(view) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<PossessedComponent>(); })) {
+            iterated = true;
+        }
+        if (iterated) return;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
             if (!entity.hasComponent<AnimationStateComponent>()) {
                 AddAnimation("sylvan_walk", entity, view);
             }
         }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
+            auto vec = scene->getEntitiesNear<TransformComponent>(entity, view, 10000.0f);
+            auto& posession = vec[0].addComponent<PossessedComponent>();
+            posession.posessor = entity.getID();
+            posession.timeInMillis = 500;
+        }
     }
 };
 REGISTER_SCRIPT(SylvanScript);
 
-class TestScene : public Scene {
+class SylvanScene : public Scene {
     void draw(RenderTarget& target, Systems view) noexcept override
     {
     }
@@ -75,49 +137,17 @@ class TestScene : public Scene {
 
         view.scriptManager->addScript<SylvanScript>(entity, view);
 
+        Entity enemy = Entity::createEntity();
+        view.scriptManager->addScript<Bat>(enemy, view);
+
     }
     void save() const noexcept override
     {
     }
 };
-REGISTER_SCENE(TestScene);
+REGISTER_SCENE(SylvanScene);
 
 
-class TestScript : public Script {
-    void onAttach(Systems& manager) override
-    {
-        auto& trans = entity.addComponent<TransformComponent>();
-        trans.pos = { 128,128 };
-        trans.velocity = { 0,0 };
-    }
-    void onDetach() override
-    {
-    }
-    void onUpdate(const float dt, Systems& view, Scene* scene) override
-    {
-        sf::Vector2f vel{ 0,0 };
-        constexpr float speed = 100;
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-            vel.x += speed;
-        };
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-            vel.x -= speed;
-        }
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-            vel.y -= speed;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-            vel.y += speed;
-        }
-
-        entity.getComponent<TransformComponent>().velocity = vel;
-
-
-    }
-};
-REGISTER_SCRIPT(TestScript);
 
 int main(int argc, char** argv) {
     const auto path = std::filesystem::current_path() / std::filesystem::path("../../../../testproject") / "project.json";
