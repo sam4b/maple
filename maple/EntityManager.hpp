@@ -55,6 +55,8 @@ public:
 
 	void destroy(const uint64_t id);
 
+	bool enabled = false;
+
 	const std::unordered_set<uint64_t>& getEntities() const noexcept;
 private:
 	std::unordered_set<uint64_t> entities;

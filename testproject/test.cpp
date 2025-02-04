@@ -88,9 +88,16 @@ class SylvanScript : public Script {
         sprite.rectangle.setSize({ 66, 66 });
         sprite.rectangle.setPosition(0, 0);
 
-        TransformComponent& trans = entity.addComponent<TransformComponent>();;
+        TransformComponent& trans = entity.addComponent<TransformComponent>();
         trans.pos = { 0, 0 };
         trans.velocity = { 0, 0 };
+
+        Physics2DComponent& physics = entity.addComponent<Physics2DComponent>();
+        physics.mass = 30;
+
+        AABBCollisionComponent& collider = entity.addComponent<AABBCollisionComponent>();
+        collider.pos = trans.pos;
+        collider.size = { 66, 66 };
     }
     void onDetach() override
     {
@@ -139,6 +146,21 @@ class SylvanScene : public Scene {
 
         Entity enemy = Entity::createEntity();
         view.scriptManager->addScript<Bat>(enemy, view);
+
+        Entity floor = Entity::createEntity();
+        auto& transform = floor.addComponent<TransformComponent>();
+        auto& sprite = floor.addComponent<SpriteComponent>();
+        auto& aabb = floor.addComponent < AABBCollisionComponent>();
+
+        transform.pos = { 0, 480 };
+        transform.velocity = { 0, 0 };
+
+        sprite.rectangle.setPosition(transform.pos);
+        sprite.rectangle.setSize({ 640, 120 });
+        sprite.rectangle.setFillColor(sf::Color::Green);
+
+        aabb.pos = { 0, 0 };
+        aabb.size = { 640, 120 };
 
     }
     void save() const noexcept override

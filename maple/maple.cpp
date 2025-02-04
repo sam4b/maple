@@ -1,4 +1,6 @@
 #include "maple.hpp"
+#include <numeric>
+#include <limits>
 
 int maple_main(const std::filesystem::path& path) {
     const auto project = OpenProject(path);
@@ -108,9 +110,99 @@ std::queue<sf::Event> readEvents(sf::RenderWindow& window, bool& shouldClose) {
 }
 
 /*
+    Adapted from: https://www.gamedev.net/tutorials/programming/general-and-gameplay-programming/swept-aabb-collision-detection-and-response-r3084/
+*/
+
+void updateVelocityIfCollided(const AABBCollisionComponent& box1, const AABBCollisionComponent& box2,
+    TransformComponent& t1, const TransformComponent& t2) {
+
+    sf::Vector2f closestEdge;
+    sf::Vector2f distToFarSide;
+
+   
+
+    if (t1.velocity.x > 0.0f)
+    {
+        closestEdge.x = t2.pos.x - (t1.pos.x + box1.size.x);
+        distToFarSide.x = (t2.pos.x + box2.size.x) - t1.pos.x;
+    }
+    else
+    {
+        closestEdge.x = (t2.pos.x + box2.size.x) - t1.pos.x;
+        distToFarSide.x = t2.pos.x - (t1.pos.x + box1.size.x);
+    }
+
+    if (t1.velocity.y > 0.0f)
+    {
+        closestEdge.y = t2.pos.y - (t1.pos.y + box1.size.y);
+        distToFarSide.y = (t2.pos.y + box2.size.y) - t1.pos.y;
+    }
+    else
+    {
+        closestEdge.y = (t2.pos.y + box2.size.y) - t1.pos.y;
+        distToFarSide.y = t2.pos.y - (t1.pos.y + box1.size.y);
+    }
+
+    sf::Vector2f entryTimeVector;
+    sf::Vector2f exitTimeVector;
+
+    //calc
+
+    if (t1.velocity.x == 0.0f)
+    {
+        entryTimeVector.x = -std::numeric_limits<float>::infinity();
+        exitTimeVector.x = std::numeric_limits<float>::infinity();
+    }
+    else
+    {
+        entryTimeVector.x = closestEdge.x / t1.velocity.x;
+        exitTimeVector.x = distToFarSide.x / t1.velocity.x;
+    }
+
+    if (t1.velocity.y == 0.0f)
+    {
+        entryTimeVector.y = -std::numeric_limits<float>::infinity();
+        exitTimeVector.y = std::numeric_limits<float>::infinity();
+    }
+    else
+    {
+        entryTimeVector.y = closestEdge.y / t1.velocity.y;
+        exitTimeVector.y = distToFarSide.y / t1.velocity.y;
+    }
+
+    const float entryTime = std::max(entryTimeVector.x, entryTimeVector.y);
+    const float exitTime = std::min(exitTimeVector.x, exitTimeVector.y);
+
+    const bool noCollision = entryTime > exitTime && entryTimeVector.x < 0.0f && entryTimeVector.y < 0.0f || entryTimeVector.x > 1.0f || entryTimeVector.y > 1.0f;
+
+    if (noCollision) {
+        return;
+    }
+
+    std::cout << "Collision happened!\n";
+
+    //Calculate normal
+    sf::Vector2f normal;
+
+    if (entryTimeVector.x > entryTimeVector.y) {
+        normal = ((closestEdge.x >= 0.0f) ? -1.0f : 1.0f) * sf::Vector2f{ 1.0f, 0.0f };
+    }
+    else {
+        normal = ((closestEdge.y >= 0.0f) ? -1.0f : 1.0f) * sf::Vector2f{ 0.0f, 1.0f };
+    }
+
+    const float collisionTime = entryTime;
+    const float remainingTime = 1.0f - collisionTime;
+
+    const float dot = ((t1.velocity.x * normal.y) + (t1.velocity.y * normal.x)) * remainingTime;
+
+    t1.velocity = dot * normal;
+}
+/*
     Somehow this has gained responsibility for drawing...
 */
 void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Event> events, Systems context, sf::Vector2i mousePos) {
+    const float dt = time.asSeconds();
     std::queue<uint64_t> toKill; //Move to bump allocator.
 
     scene->update(events, mousePos, time.asSeconds(), context, time);
@@ -121,22 +213,9 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
         script->onUpdate(time.asSeconds(), context, scene);
     }
 
-    for (Entity entity : scene->getEntities(context)
-        | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<TransformComponent>(); })) {
-        auto& transform = entity.getComponent<TransformComponent>();
-        transform.pos += transform.velocity * time.asSeconds();
-        transform.velocity = { 0, 0 };
-
-        if (entity.hasComponent<SpriteComponent>()) {
-            auto& sprite = entity.getComponent<SpriteComponent>();
-            sprite.rectangle.setPosition(transform.pos);
-        }
-
-        if (entity.hasComponent<AABBCollisionComponent>()) {
-            auto& aabb = entity.getComponent<AABBCollisionComponent>();
-            aabb.pos = transform.pos;
-        }
-    }
+    /*
+        Animation system
+    */
 
     for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<AnimationStateComponent>(); })) {
         assert(entity.hasComponent<SpriteComponent>());
@@ -178,10 +257,118 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
         
     }
 
+
+    static bool g_active = false;
+    static bool c_active = false;
+    static bool draw_colliders = false;
+    ImGui::Begin("Dev Tools");
+    ImGui::Checkbox("Draw colliders", &draw_colliders);
+    ImGui::Checkbox("Gravity", &g_active);
+    ImGui::Checkbox("Collision", &c_active);
+    ImGui::End();
+
+
+    if (c_active) {
+        context.entityManager->enabled = true;
+    }
+    /*
+    Gravity system
+    */
+
+
+    if (g_active) {
+        for (Entity entity : scene->getEntities(context)
+            | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<TransformComponent>(); })) {
+
+            auto& transform = entity.getComponent<TransformComponent>();
+            if (entity.hasComponent<Physics2DComponent>()) {
+                const auto& physics = entity.getComponent<Physics2DComponent>();
+                transform.velocity += {0, physics.mass * 9.81f};
+            }
+        }
+
+    }
+
+    for (Entity entity : scene->getEntities(context)
+        | std::ranges::views::filter([&](Entity e) -> bool {
+            return e.hasComponent<TransformComponent>();
+            })) {
+        entity.getComponent<TransformComponent>().velocity *= dt;
+    }
+
+    /* Collision System */
+
+    if (c_active) {
+        for (Entity entity : scene->getEntities(context)
+            | std::ranges::views::filter([&](Entity e) -> bool {
+                return e.hasComponent<TransformComponent>() && e.hasComponent<AABBCollisionComponent>();
+                })) {
+
+            auto& t1 = entity.getComponent<TransformComponent>();
+            const auto& box1 = entity.getComponent<AABBCollisionComponent>();
+            for (Entity entity2 : scene->getEntities(context)
+                | std::ranges::views::filter([&](Entity e) -> bool {
+                    return e.hasComponent<TransformComponent>() && e.hasComponent<AABBCollisionComponent>() && e.getID() != entity.getID();
+                    })) {
+
+                const auto& t2 = entity2.getComponent<TransformComponent>();
+                const auto& box2 = entity2.getComponent<AABBCollisionComponent>();
+
+                updateVelocityIfCollided(box1, box2, t1, t2);
+            }
+        }
+    }
+
+    /* Transform system */
+    for (Entity entity : scene->getEntities(context)
+        | std::ranges::views::filter([&](Entity e) -> bool {
+            return e.hasComponent<TransformComponent>();
+            })
+        ) {
+
+        auto& transform = entity.getComponent<TransformComponent>();
+
+        transform.pos += transform.velocity;
+        transform.velocity = { 0, 0 };
+
+        if (entity.hasComponent<AABBCollisionComponent>()) {
+            auto& aabb = entity.getComponent<AABBCollisionComponent>();
+
+            aabb.pos = transform.pos;
+        }
+
+        if (entity.hasComponent<SpriteComponent>()) {
+            auto& sprite = entity.getComponent<SpriteComponent>();
+
+            sprite.rectangle.setPosition(transform.pos);
+        }
+       
+    }
+
+    /* Drawing system */
+
     for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<SpriteComponent>(); })) {
         target.draw(entity.getComponent<SpriteComponent>().rectangle);
     }
 
+    if (draw_colliders) {
+        ImGui::Begin("Collider Info");
+        for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<AABBCollisionComponent>(); })) {
+            const auto& aabb = entity.getComponent<AABBCollisionComponent>();
+            
+            sf::RectangleShape shape;
+            
+            ImGui::Text(std::format("name: {}, pos: {}, {}, size: {}, {}", (entity.hasComponent<NameComponent>()) ? entity.getComponent<NameComponent>().name : std::to_string(entity.getID()), aabb.pos.x, aabb.pos.y, aabb.size.x, aabb.size.y).c_str());
+            shape.setPosition(aabb.pos);
+            shape.setSize(aabb.size);
+            shape.setOutlineColor(sf::Color::Red);
+            shape.setOutlineThickness(1.0f);
+            shape.setFillColor(sf::Color(0, 0, 0, 0));
+            target.draw(shape);
+            
+        }
+        ImGui::End();
+    }
     //Collision resolution?
 
 }

@@ -65,6 +65,19 @@ static_assert(std::is_base_of_v<ComponentMetadata, SpriteComponent>, "Component 
 	}
 } maple_internal_register_component_SpriteComponent;;
 
+struct Physics2DComponent : public ComponentMetadata {
+	float mass;
+
+	// Inherited via ComponentMetadata
+	void FromJson(const nlohmann::json& json, Systems context) noexcept override
+	{
+	}
+	nlohmann::json ToJson() const noexcept override
+	{
+		return nlohmann::json();
+	}
+};
+REGISTER_COMPONENT(Physics2DComponent);
 
 struct TransformComponent : ComponentMetadata {
 	sf::Vector2f pos;
