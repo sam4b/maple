@@ -113,13 +113,14 @@ std::queue<sf::Event> readEvents(sf::RenderWindow& window, bool& shouldClose) {
     Adapted from: https://www.gamedev.net/tutorials/programming/general-and-gameplay-programming/swept-aabb-collision-detection-and-response-r3084/
 */
 
-void updateVelocityIfCollided(const AABBCollisionComponent& box1, const AABBCollisionComponent& box2,
-    TransformComponent& t1, const TransformComponent& t2) {
+
+std::optional<sf::Vector2f> updateVelocityIfCollided(const AABBCollisionComponent& box1, const AABBCollisionComponent& box2,
+    const TransformComponent& t1, const TransformComponent& t2) {
 
     sf::Vector2f closestEdge;
     sf::Vector2f distToFarSide;
 
-   
+
 
     if (t1.velocity.x > 0.0f)
     {
@@ -176,7 +177,7 @@ void updateVelocityIfCollided(const AABBCollisionComponent& box1, const AABBColl
     const bool noCollision = entryTime > exitTime || entryTimeVector.x < 0.0f && entryTimeVector.y < 0.0f || entryTimeVector.x > 1.0f || entryTimeVector.y > 1.0f;
 
     if (noCollision) {
-        return;
+        return std::nullopt;
     }
 
     std::cout << "Collision happened!\n";
@@ -196,8 +197,42 @@ void updateVelocityIfCollided(const AABBCollisionComponent& box1, const AABBColl
 
     const float dot = ((t1.velocity.x * normal.y) + (t1.velocity.y * normal.x)) * remainingTime;
 
-    t1.velocity = dot * normal;
+
+    const sf::Vector2f resolve = dot * sf::Vector2f{ normal.y, normal.x };
+
+   return resolve;
 }
+
+bool AABBCheck(const AABBCollisionComponent& box1, const AABBCollisionComponent& box2) {
+    return !(box1.pos.x + box1.size.x < box2.pos.x || box1.pos.x > box2.pos.x + box2.size.x || box1.pos.y + box1.pos.y < box2.pos.y || box1.pos.y > box2.pos.y + box2.size.y);
+}
+
+
+std::optional<sf::Vector2f> collision(const AABBCollisionComponent& box1, const AABBCollisionComponent& box2,
+    const TransformComponent& t1, const TransformComponent& t2) {
+
+    AABBCollisionComponent broadphase;
+    broadphase.pos.x = t1.velocity.x > 0 ? box1.pos.x : box1.pos.x + t1.velocity.x;
+    broadphase.pos.y = t1.velocity.y > 0 ? box1.pos.y : box1.pos.y + t1.velocity.y;
+    broadphase.size.x = t1.velocity.x > 0 ? t1.velocity.x + box1.size.x : box1.size.x - t1.velocity.x;
+    broadphase.size.y = t1.velocity.y > 0 ? t1.velocity.y + box1.size.y : box1.size.y - t1.velocity.y;
+
+
+    if (!AABBCheck(broadphase, box2)) {
+        return std::nullopt;
+    }
+
+    const auto value = updateVelocityIfCollided(box1, box2, t1, t2);
+
+    if (!value.has_value()) {
+        return std::nullopt;
+    }
+    return value;
+}
+
+
+
+
 /*
     Somehow this has gained responsibility for drawing...
 */
@@ -306,6 +341,7 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
 
             auto& t1 = entity.getComponent<TransformComponent>();
             const auto& box1 = entity.getComponent<AABBCollisionComponent>();
+            if (t1.velocity == sf::Vector2f{0, 0}) continue;
             for (Entity entity2 : scene->getEntities(context)
                 | std::ranges::views::filter([&](Entity e) -> bool {
                     return e.hasComponent<TransformComponent>() && e.hasComponent<AABBCollisionComponent>() && e.getID() != entity.getID();
@@ -314,8 +350,11 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
                 const auto& t2 = entity2.getComponent<TransformComponent>();
                 const auto& box2 = entity2.getComponent<AABBCollisionComponent>();
 
-                updateVelocityIfCollided(box1, box2, t1, t2);
-            }
+                const std::optional<sf::Vector2f> resolveVelocity = collision(box1, box2, t1, t2);
+
+                if (resolveVelocity.has_value()) {
+                    t1.velocity = resolveVelocity.value();
+                }            }
         }
     }
 

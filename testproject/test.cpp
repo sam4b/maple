@@ -109,12 +109,23 @@ class SylvanScript : public Script {
             iterated = true;
         }
         if (iterated) return;
+
+        auto& trans = entity.getComponent<TransformComponent>();
+
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
             if (!entity.hasComponent<AnimationStateComponent>()) {
                 AddAnimation("sylvan_walk", entity, view);
             }
+            trans.velocity += {100, 0};
         }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+            trans.velocity += {0, -500};
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+            //play flipped
+            trans.velocity -= {100, 0};
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
             auto vec = scene->getEntitiesNear<TransformComponent>(entity, view, 10000.0f);
             auto& posession = vec[0].addComponent<PossessedComponent>();
             posession.posessor = entity.getID();
@@ -147,20 +158,42 @@ class SylvanScene : public Scene {
         Entity enemy = Entity::createEntity();
         view.scriptManager->addScript<Bat>(enemy, view);
 
-        Entity floor = Entity::createEntity();
-        auto& transform = floor.addComponent<TransformComponent>();
-        auto& sprite = floor.addComponent<SpriteComponent>();
-        auto& aabb = floor.addComponent < AABBCollisionComponent>();
+        {
+            Entity floor = Entity::createEntity();
+            auto& transform = floor.addComponent<TransformComponent>();
+            auto& sprite = floor.addComponent<SpriteComponent>();
+            auto& aabb = floor.addComponent < AABBCollisionComponent>();
 
-        transform.pos = { 0, 480 };
-        transform.velocity = { 0, 0 };
+            transform.pos = { 0, 480 };
+            transform.velocity = { 0, 0 };
 
-        sprite.rectangle.setPosition(transform.pos);
-        sprite.rectangle.setSize({ 640, 120 });
-        sprite.rectangle.setFillColor(sf::Color::Green);
+            sprite.rectangle.setPosition(transform.pos);
+            sprite.rectangle.setSize({ 640, 120 });
+            sprite.rectangle.setFillColor(sf::Color::Green);
 
-        aabb.pos = { 0, 0 };
-        aabb.size = { 640, 120 };
+            aabb.pos = { 0, 0 };
+            aabb.size = { 640, 120 };
+        }
+
+        {
+            Entity wall = Entity::createEntity();
+            auto& transform = wall.addComponent<TransformComponent>();
+            auto& sprite = wall.addComponent<SpriteComponent>();
+            auto& aabb = wall.addComponent < AABBCollisionComponent>();
+
+            transform.pos = { 500, 416 };
+            transform.velocity = { 0, 0 };
+
+            sprite.rectangle.setPosition(transform.pos);
+            sprite.rectangle.setSize({ 64, 64 });
+            sprite.rectangle.setFillColor(sf::Color::Red);
+
+            aabb.pos = { 0, 0 };
+            aabb.size = { 64, 64 };
+        }
+
+
+
 
     }
     void save() const noexcept override
