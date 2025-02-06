@@ -41,19 +41,27 @@ struct PossessedComponent : public ComponentMetadata {
 };
 REGISTER_COMPONENT(PossessedComponent);
 
-class Bat : public Script {
+class BatScript : public Script {
     // Inherited via Script
     void onAttach(Systems& manager) override
     {
         auto& trans = entity.addComponent<TransformComponent>();
         auto& sprite = entity.addComponent<SpriteComponent>();
-
+        
         trans.pos = { 256, 0 };
         trans.velocity = { 0, 0 };
 
-        sprite.rectangle.setFillColor(sf::Color::Red);
+        sprite.rectangle.setFillColor(sf::Color::Blue);
         sprite.rectangle.setPosition(trans.pos);
         sprite.rectangle.setSize({ 64, 64 });
+
+        Physics2DComponent& physics = entity.addComponent<Physics2DComponent>();
+        physics.mass = 30;
+
+        AABBCollisionComponent& collider = entity.addComponent<AABBCollisionComponent>();
+        collider.pos = trans.pos;
+        collider.size = { 64, 64 };
+
     }
     void onDetach() override
     {
@@ -75,7 +83,7 @@ class Bat : public Script {
         }
     }
 };
-REGISTER_SCRIPT(Bat);
+REGISTER_SCRIPT(BatScript);
 
 class SylvanScript : public Script {
     void onAttach(Systems& manager) override
@@ -156,7 +164,7 @@ class SylvanScene : public Scene {
         view.scriptManager->addScript<SylvanScript>(entity, view);
 
         Entity enemy = Entity::createEntity();
-        view.scriptManager->addScript<Bat>(enemy, view);
+        view.scriptManager->addScript<BatScript>(enemy, view);
 
         {
             Entity floor = Entity::createEntity();
@@ -186,7 +194,7 @@ class SylvanScene : public Scene {
 
             sprite.rectangle.setPosition(transform.pos);
             sprite.rectangle.setSize({ 64, 64 });
-            sprite.rectangle.setFillColor(sf::Color::Red);
+            sprite.rectangle.setFillColor(sf::Color::Blue);
 
             aabb.pos = { 0, 0 };
             aabb.size = { 64, 64 };
