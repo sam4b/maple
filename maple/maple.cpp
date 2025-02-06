@@ -173,7 +173,7 @@ void updateVelocityIfCollided(const AABBCollisionComponent& box1, const AABBColl
     const float entryTime = std::max(entryTimeVector.x, entryTimeVector.y);
     const float exitTime = std::min(exitTimeVector.x, exitTimeVector.y);
 
-    const bool noCollision = entryTime > exitTime && entryTimeVector.x < 0.0f && entryTimeVector.y < 0.0f || entryTimeVector.x > 1.0f || entryTimeVector.y > 1.0f;
+    const bool noCollision = entryTime > exitTime || entryTimeVector.x < 0.0f && entryTimeVector.y < 0.0f || entryTimeVector.x > 1.0f || entryTimeVector.y > 1.0f;
 
     if (noCollision) {
         return;
