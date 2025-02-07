@@ -174,10 +174,15 @@ std::optional<sf::Vector2f> updateVelocityIfCollided(const AABBCollisionComponen
     const float entryTime = std::max(entryTimeVector.x, entryTimeVector.y);
     const float exitTime = std::min(exitTimeVector.x, exitTimeVector.y);
 
-    const bool noCollision = entryTime > exitTime || entryTimeVector.x < 0.0f && entryTimeVector.y < 0.0f || entryTimeVector.x > 1.0f || entryTimeVector.y > 1.0f;
+    const bool noCollision = entryTime > exitTime 
+        || entryTimeVector.x < 0.0f && entryTimeVector.y < 0.0f 
+        || entryTimeVector.x > 1.0f 
+        || entryTimeVector.y > 1.0f;
+
+
 
     if (noCollision) {
-        return std::nullopt;
+         return std::nullopt;
     }
 
     std::cout << "Collision happened!\n";
@@ -200,16 +205,22 @@ std::optional<sf::Vector2f> updateVelocityIfCollided(const AABBCollisionComponen
 
     const sf::Vector2f resolve = dot * sf::Vector2f{ normal.y, normal.x };
 
-   return resolve;
+    return resolve;
 }
 
 bool AABBCheck(const AABBCollisionComponent& box1, const AABBCollisionComponent& box2) {
-    return !(box1.pos.x + box1.size.x < box2.pos.x || box1.pos.x > box2.pos.x + box2.size.x || box1.pos.y + box1.pos.y < box2.pos.y || box1.pos.y > box2.pos.y + box2.size.y);
+    return !(box1.pos.x + box1.size.x < box2.pos.x || box1.pos.x > box2.pos.x + box2.size.x || box1.pos.y + box1.size.y < box2.pos.y || box1.pos.y > box2.pos.y + box2.size.y);
 }
 
 
 std::optional<sf::Vector2f> collision(const AABBCollisionComponent& box1, const AABBCollisionComponent& box2,
     const TransformComponent& t1, const TransformComponent& t2) {
+
+
+    //This is minkowski?
+
+    //Not colliding yet, is this in our broadphase box?
+
 
     AABBCollisionComponent broadphase;
     broadphase.pos.x = t1.velocity.x > 0 ? box1.pos.x : box1.pos.x + t1.velocity.x;
@@ -221,6 +232,8 @@ std::optional<sf::Vector2f> collision(const AABBCollisionComponent& box1, const 
     if (!AABBCheck(broadphase, box2)) {
         return std::nullopt;
     }
+
+    //We could collide, run swept AABB.
 
     const auto value = updateVelocityIfCollided(box1, box2, t1, t2);
 
@@ -354,7 +367,12 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
 
                 if (resolveVelocity.has_value()) {
                     t1.velocity = resolveVelocity.value();
-                }            }
+                   
+                    if (context.scriptManager->hasScript(entity2)) {
+                        context.scriptManager->getScript(entity2)->onCollide(entity);
+                    }
+                }            
+            }
         }
     }
 
@@ -366,7 +384,9 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
         ) {
 
         auto& transform = entity.getComponent<TransformComponent>();
-
+        ImGui::Begin("Transform");
+        ImGui::Text(std::format("name: {}, pos: {}, {}, vel: {}, {}", (entity.hasComponent<NameComponent>()) ? entity.getComponent<NameComponent>().name : std::to_string(entity.getID()), transform.pos.x, transform.pos.y, transform.velocity.x, transform.velocity.y).c_str());
+        ImGui::End();
         transform.pos += transform.velocity;
         transform.velocity = { 0, 0 };
 

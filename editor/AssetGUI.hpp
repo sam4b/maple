@@ -4,6 +4,7 @@
 #include <imgui.h>
 #include <imfilebrowser.h>
 #include <imgui-SFML.h>
+#include <format>
 
 bool AnimationImport(AssetManager& manager) {
 
@@ -68,12 +69,14 @@ bool AnimationImport(AssetManager& manager) {
 					.frameTime = data.frameTime
 					});
 				ImGui::End();
+				data = AnimationData();
 				return false;
 			}
 
 		}
 
 		if (ImGui::Button("Cancel")) {
+			data = AnimationData();
 			animData.selected = false;
 			ImGui::End();
 			return false;
@@ -319,6 +322,7 @@ inline void Assets(AssetManager& manager, float dt) {
 				assert(animation.ids.size() >= 1);
 				ImGui::PushID(uuid);
 				sf::Sprite sprite;
+				ImGui::Text(std::format("Name: {}, UUID: {}", manager.GetRegistry().getName(uuid), uuid).c_str());
 				if (states.contains(uuid)) {
 					AnimationStateComponent& component = states.at(uuid);
 					

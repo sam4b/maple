@@ -23,6 +23,10 @@ public:
 
 	virtual void onDetach() = 0;
 
+	virtual void onCollide(Entity collider) {
+
+	}
+
 	virtual void tryInteract(Entity interactor) {
 		std::cout << std::format("Entity {} tried to interact with me: Entity {}!\n", interactor.getID(), this->getTarget().getID());
 	}

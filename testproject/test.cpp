@@ -56,7 +56,7 @@ class BatScript : public Script {
         sprite.rectangle.setSize({ 64, 64 });
 
         Physics2DComponent& physics = entity.addComponent<Physics2DComponent>();
-        physics.mass = 30;
+        physics.mass = 0;
 
         AABBCollisionComponent& collider = entity.addComponent<AABBCollisionComponent>();
         collider.pos = trans.pos;
@@ -68,11 +68,17 @@ class BatScript : public Script {
     }
     void onUpdate(const float dt, Systems& view, Scene* scene) override
     {
+        ImGui::Begin("Bat");
+        ImGui::DragFloat("Mass", &entity.getComponent<Physics2DComponent>().mass);
+        ImGui::End();
         if (entity.hasComponent<PossessedComponent>()) {
+            ImGui::Begin("Possession Window");
             auto& trans = entity.getComponent<TransformComponent>();
             auto& possessed = entity.getComponent<PossessedComponent>();
             possessed.timeInMillis -= dt * 100;
-            if (possessed.timeInMillis < 0) {
+            ImGui::Text(std::to_string(possessed.timeInMillis).c_str());
+            ImGui::End();
+            if (possessed.timeInMillis <= 0) {
                 view.entityManager->removeComponent<PossessedComponent>(entity.getID());
             }
             else {
@@ -162,10 +168,11 @@ class SylvanScene : public Scene {
         Entity entity = Entity::createEntity();
 
         view.scriptManager->addScript<SylvanScript>(entity, view);
+        entity.addComponent<NameComponent>().name = "Sylvan";
 
         Entity enemy = Entity::createEntity();
         view.scriptManager->addScript<BatScript>(enemy, view);
-
+        enemy.addComponent<NameComponent>().name = "Bat";
         {
             Entity floor = Entity::createEntity();
             auto& transform = floor.addComponent<TransformComponent>();
@@ -181,6 +188,8 @@ class SylvanScene : public Scene {
 
             aabb.pos = { 0, 0 };
             aabb.size = { 640, 120 };
+            floor.addComponent<NameComponent>().name = "Floor";
+
         }
 
         {
@@ -198,6 +207,8 @@ class SylvanScene : public Scene {
 
             aabb.pos = { 0, 0 };
             aabb.size = { 64, 64 };
+
+            wall.addComponent<NameComponent>().name = "Wall";
         }
 
 

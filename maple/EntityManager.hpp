@@ -44,7 +44,9 @@ public:
 		assert(hasComponent<T>(id));
 
 		std::unordered_map<uint64_t, T>& map = getMap<T>();
+		assert(map.contains(id));
 		map.erase(id);
+		assert(!map.contains(id));
 	}
 
 	template <typename T>
