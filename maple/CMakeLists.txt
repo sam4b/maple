@@ -1,7 +1,7 @@
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_library(Maple STATIC "AssetManager.cpp" "AssetRegistry.cpp" "Entity.cpp" "EntityManager.cpp" "maple.cpp" "Registry.cpp" "SceneParser.cpp" "Meta.cpp")
+add_library(Maple STATIC "AssetManager.cpp" "AssetRegistry.cpp" "Entity.cpp" "EntityManager.cpp" "ECSStorage.hpp" "Query.hpp" "maple.cpp" "Registry.cpp" "SceneParser.cpp" "Meta.cpp")
 target_include_directories(Maple PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 find_package(SFML COMPONENTS system window graphics audio CONFIG REQUIRED)

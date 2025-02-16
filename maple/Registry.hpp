@@ -4,14 +4,13 @@
 #include "ComponentMap.hpp"
 #include <imgui.h>
 #include "EntityManager.hpp"
-
+#include "ECSStorage.hpp"
 class Script;
 class Scene;
 
 struct ComponentData {
     int typeID;
-    std::function<ComponentMap* ()> storageFactory;
-    std::function<void(EntityManager&, const uint64_t)> instanceFactory;
+    TypeErasedStorage* data;
     std::function<void(const std::string&, EntityManager&, const uint64_t)> editorShowable;
 };
 
@@ -28,7 +27,7 @@ class Registry {
 public:
     template <typename T>
     requires std::is_base_of_v<ComponentMetadata, T>
-    static void RegisterComponent(const std::string& string, std::function<ComponentMap* ()> mapFactory, std::function<void(T&)> ImGuiFunc) {
+    static void RegisterComponent(const std::string& string) {
         if (!m_instance) {
             m_instance = new Registry();
         }
@@ -68,7 +67,11 @@ public:
 
         TypeIdentifier::registerType<T>();
 
-        m_instance->mapFactory[string] = { TypeIdentifier::get<T>(), mapFactory, instanceFactory, ImGuiComponentCode };
+        TypeErasedStorage* ptr = new StorageWrapper<T>();
+
+        std::cout << std::format("Spawned a new storage for component {} with id {}.\n", string, TypeIdentifier::get<T>());
+
+        m_instance->mapFactory[string] = { TypeIdentifier::get<T>(), ptr, ImGuiComponentCode };
 
     }
 
@@ -123,7 +126,7 @@ private:
 #define REGISTER_COMPONENT(name) \
 static_assert(std::is_base_of_v<ComponentMetadata, name>, "Component must implement (de)serialization functions!"); \
 static struct maple_register_component_##name { maple_register_component_##name() { \
-     Registry::RegisterComponent<name>(#name, []() -> ComponentMap* { return new ComponentMapImpl<name>();}, [](name& data) -> void { data.ImGuiDisplay();}); \
+     Registry::RegisterComponent<name>(#name); \
 }\
 \
 } maple_internal_register_component_##name;

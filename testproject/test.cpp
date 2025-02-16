@@ -1,6 +1,4 @@
 #include <maple.hpp>
-#include <editor.hpp>
-
 
 /*
     Temp here, should go in engine
@@ -79,6 +77,8 @@ class BatScript : public Script {
             ImGui::Text(std::to_string(possessed.timeInMillis).c_str());
             ImGui::End();
             if (possessed.timeInMillis <= 0) {
+                //tg
+                auto& storage = *view.entityManager;
                 view.entityManager->removeComponent<PossessedComponent>(entity.getID());
             }
             else {
@@ -221,8 +221,6 @@ class SylvanScene : public Scene {
 };
 REGISTER_SCENE(SylvanScene);
 
-
-
 int main(int argc, char** argv) {
     const auto path = std::filesystem::current_path() / std::filesystem::path("../../../../testproject") / "project.json";
 
@@ -234,7 +232,7 @@ int main(int argc, char** argv) {
     }
 
     if (s == "editor") {
-        editor_main(path);
+     //   editor_main(path);
     }
     else {
         maple_main(path); //bad and non-portable.

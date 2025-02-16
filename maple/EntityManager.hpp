@@ -3,15 +3,26 @@
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
-#include "ComponentMap.hpp"
+#include "ECSStorage.hpp"
+#include "Query.hpp"
 #include <functional>
 #include "Meta.hpp"
 #include <format>
 #include "Random.hpp"
+#include  <cassert>
+#include <nlohmann/json.hpp>
+#include "MapleContext.hpp"
 
 class EntityManager {
 public:
-	void registerComponent(int id, std::function<ComponentMap* ()> factory, const std::string& name);
+	template <typename... Components>
+	void RunSystem(const float dt, const std::function<void(float, Query<Components...>&, Systems)>& system, Systems systems) {
+		Query<Components...> query(entities, getStorage<Components>()...);
+		system(dt, query, systems);
+		query.PushChangesToOriginal(getStorage<Components>()...);
+	}
+
+	void registerComponent(int id, TypeErasedStorage* data, const std::string& name);
 
 	void loadJSON(const nlohmann::json& json, Systems context);
 
@@ -23,19 +34,14 @@ public:
 	
 	template <typename T>
 	bool hasComponent(const uint64_t id) {
-		const auto& map = this->getMap<T>();
-
-		return map.contains(id);
+		return getStorage<T>().contains(id);
 	}
 
 	template <typename T>
 	T& addComponent(const uint64_t id) {
 		assert(entities.contains(id));
 		assert(!hasComponent<T>(id));
-
-		std::unordered_map<uint64_t, T>& map = getMap<T>();
-		map.insert({id, T() });
-		return map.at(id);
+		return getStorage<T>().add(id);
 	}
 
 	template <typename T>
@@ -43,16 +49,13 @@ public:
 		assert(entities.contains(id));
 		assert(hasComponent<T>(id));
 
-		std::unordered_map<uint64_t, T>& map = getMap<T>();
-		assert(map.contains(id));
-		map.erase(id);
-		assert(!map.contains(id));
+		getStorage<T>().remove(id);
 	}
 
 	template <typename T>
 	T& getComponent(const uint64_t id) {
 		assert(hasComponent<T>(id));
-		return getMap<T>().at(id);
+		return getStorage<T>().get(id);
 	}
 
 	void destroy(const uint64_t id);
@@ -61,17 +64,25 @@ public:
 
 	const std::unordered_set<uint64_t>& getEntities() const noexcept;
 private:
+
+
+
+
+	//Alternative ways of getting the same storage.
+	std::unordered_map<uint64_t, TypeErasedStorage*> storage;
+	std::unordered_map<std::string, TypeErasedStorage*> nameMap;
+
+
 	std::unordered_set<uint64_t> entities;
 
-	std::unordered_map<int, ComponentMap*> components;
-	std::unordered_map<std::string, ComponentMap*> nameToMap;
-
 	template <typename T>
-	std::unordered_map<uint64_t, T>& getMap() {
+	ECSStorage<T>& getStorage() {
 		const auto typeID = TypeIdentifier::get<T>();
 
-		assert(components.contains(typeID));
+		assert(storage.contains(typeID));
 
-		return *(std::unordered_map<uint64_t, T>*)components.at(typeID)->getMap();
+		StorageWrapper<T>* wrapper = (StorageWrapper<T>*)storage.at(typeID);
+
+		return wrapper->get();
 	}
 };

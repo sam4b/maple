@@ -17,8 +17,7 @@ Maple LoadProject(const MapleProject& project) {
     const auto [components, scripts, scenes] = Registry::GetUserContents();
 
     for (const auto& [name, componentData] : components) {
-        maple.systems.entityManager->registerComponent(componentData.typeID, componentData.storageFactory, name);
-        std::cout << std::format("Registered component {}.\n", name);
+        maple.systems.entityManager->registerComponent(componentData.typeID, componentData.data, name);;
     }
 
     for (const auto& [name, creator] : scripts) {
@@ -264,6 +263,42 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
     /*
         Animation system
     */
+
+    const std::function<void(const float, Query<AnimationStateComponent, SpriteComponent, TransformComponent>&, Systems)> func = 
+        [](const float dt, Query<AnimationStateComponent, SpriteComponent, TransformComponent>& query, Systems context) -> void
+	{
+            for (auto& [state, sprite, transform] : query.iterate()) {
+                const uint64_t subtract = dt * 100;
+
+                const auto& animation = context.assetManager->GetAnimation(state.animationID);
+
+                state.lastUpdate -= subtract;
+
+                if (state.lastUpdate <= 0) {
+                    state.offset++;
+                    state.lastUpdate = animation.frameTime;
+                    if (state.offset == animation.ids.size()) {
+                        state.offset = 0;
+                    }
+                }
+
+
+                if (state.lastUpdate <= 0) {
+                    state.lastUpdate = animation.frameTime;
+                    state.offset++;
+                    if (state.offset == animation.ids.size()) state.offset = 0;
+                }
+
+                const auto tex = context.assetManager->GetTexture(animation.ids[state.offset]).value();
+
+                sprite.rectangle.setTextureRect(tex.rect);
+                sprite.rectangle.setTexture(tex.texture);
+            }
+	};
+
+    context.entityManager->RunSystem<AnimationStateComponent, SpriteComponent, TransformComponent>(dt, func, context);
+    
+
 
     for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<AnimationStateComponent>(); })) {
         assert(entity.hasComponent<SpriteComponent>());

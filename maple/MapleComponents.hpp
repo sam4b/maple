@@ -59,11 +59,7 @@ struct SpriteComponent : ComponentMetadata {
 		rectangle.setSize({ json["size"][0], json["size"][1] });
 	}
 };
-static_assert(std::is_base_of_v<ComponentMetadata, SpriteComponent>, "Component must implement (de)serialization functions!"); static struct maple_register_component_SpriteComponent {
-	maple_register_component_SpriteComponent() {
-		Registry::RegisterComponent<SpriteComponent>("SpriteComponent", []() -> ComponentMap* { return new ComponentMapImpl<SpriteComponent>(); }, [](SpriteComponent& data) -> void { data.ImGuiDisplay(); });
-	}
-} maple_internal_register_component_SpriteComponent;;
+REGISTER_COMPONENT(SpriteComponent)
 
 struct Physics2DComponent : public ComponentMetadata {
 	float mass;
