@@ -382,34 +382,26 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
     /* Collision System */
 
     if (c_active) {
-        for (Entity entity : scene->getEntities(context)
-            | std::ranges::views::filter([&](Entity e) -> bool {
-                return e.hasComponent<TransformComponent>() && e.hasComponent<AABBCollisionComponent>();
-                })) {
 
-            auto& t1 = entity.getComponent<TransformComponent>();
-            const auto& box1 = entity.getComponent<AABBCollisionComponent>();
-            if (t1.velocity == sf::Vector2f{0, 0}) continue;
-            for (Entity entity2 : scene->getEntities(context)
-                | std::ranges::views::filter([&](Entity e) -> bool {
-                    return e.hasComponent<TransformComponent>() && e.hasComponent<AABBCollisionComponent>() && e.getID() != entity.getID();
-                    })) {
+        context.entityManager->RunSystem<TransformComponent, AABBCollisionComponent>(dt, [](const float dt, Query<TransformComponent, AABBCollisionComponent>& query, Systems systems) -> void {
+            for (int i = 0; i < query.iterate().size(); i++) {
+                auto& [t1, b1] = query.iterate().at(i);
+                if (t1.velocity == sf::Vector2f{ 0, 0 }) continue;
+                for (int j = 0; j < query.iterate().size(); j++) {
+                    if (i == j) continue;
+                    const auto& [t2, b2] = query.iterate().at(j);
 
-                const auto& t2 = entity2.getComponent<TransformComponent>();
-                const auto& box2 = entity2.getComponent<AABBCollisionComponent>();
+                    const std::optional<sf::Vector2f> resolveVelocity = collision(b1, b2, t1, t2);
 
-                const std::optional<sf::Vector2f> resolveVelocity = collision(box1, box2, t1, t2);
-
-                if (resolveVelocity.has_value()) {
-                    t1.velocity = resolveVelocity.value();
-                   
-                    if (context.scriptManager->hasScript(entity2)) {
-                        context.scriptManager->getScript(entity2)->onCollide(entity);
+                    if (resolveVelocity.has_value()) {
+                        t1.velocity = resolveVelocity.value();
                     }
-                }            
+                }
             }
-        }
-    }
+
+            }, context);
+       
+       }
 
     /* Transform system */
     for (Entity entity : scene->getEntities(context)
