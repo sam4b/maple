@@ -281,13 +281,6 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
                     }
                 }
 
-
-                if (state.lastUpdate <= 0) {
-                    state.lastUpdate = animation.frameTime;
-                    state.offset++;
-                    if (state.offset == animation.ids.size()) state.offset = 0;
-                }
-
                 const auto tex = context.assetManager->GetTexture(animation.ids[state.offset]).value();
 
                 sprite.rectangle.setTextureRect(tex.rect);
@@ -296,7 +289,7 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
         }, context);
     
 
-   static bool g_active = false;
+    static bool g_active = false;
     static bool c_active = false;
     static bool draw_colliders = false;
     ImGui::Begin("Dev Tools");
@@ -354,33 +347,23 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
        
        }
 
-    /* Transform system */
-    for (Entity entity : scene->getEntities(context)
-        | std::ranges::views::filter([&](Entity e) -> bool {
-            return e.hasComponent<TransformComponent>();
-            })
-        ) {
-
-        auto& transform = entity.getComponent<TransformComponent>();
-        ImGui::Begin("Transform");
-        ImGui::Text(std::format("name: {}, pos: {}, {}, vel: {}, {}", (entity.hasComponent<NameComponent>()) ? entity.getComponent<NameComponent>().name : std::to_string(entity.getID()), transform.pos.x, transform.pos.y, transform.velocity.x, transform.velocity.y).c_str());
-        ImGui::End();
-        transform.pos += transform.velocity;
-        transform.velocity = { 0, 0 };
-
-        if (entity.hasComponent<AABBCollisionComponent>()) {
-            auto& aabb = entity.getComponent<AABBCollisionComponent>();
-
-            aabb.pos = transform.pos;
+    context.entityManager->RunSystem<TransformComponent>(dt, [](const float dt, Query<TransformComponent>& query, Systems systems) -> void {
+        for (auto& [transform] : query.iterate()) {
+            transform.pos += transform.velocity;
+            transform.velocity = { 0, 0 };
         }
+        }, context);
 
-        if (entity.hasComponent<SpriteComponent>()) {
-            auto& sprite = entity.getComponent<SpriteComponent>();
+    context.entityManager->RunSystem<TransformComponent, AABBCollisionComponent>(dt, [](const float dt, Query<TransformComponent, AABBCollisionComponent>& query, Systems systems) -> void {
+        for (auto& [transform, aabb] : query.iterate()) {
+            aabb.pos = transform.pos;
+        }        }, context);
 
+    context.entityManager->RunSystem<TransformComponent, SpriteComponent>(dt, [](const float dt, Query<TransformComponent, SpriteComponent>& query, Systems systems) -> void {
+        for (auto& [transform, sprite] : query.iterate()) {
             sprite.rectangle.setPosition(transform.pos);
         }
-       
-    }
+        }, context);
 
     /* Drawing system */
 
