@@ -252,21 +252,20 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
     const float dt = time.asSeconds();
     std::queue<uint64_t> toKill; //Move to bump allocator.
 
-    scene->update(events, mousePos, time.asSeconds(), context, time);
+    scene->update(events, mousePos, dt, context, time);
 
     for (Script* script : scene->getEntities(context)
         | std::ranges::views::filter([&](Entity e) -> bool { return context.scriptManager->hasScript(e); })
         | std::ranges::views::transform([&](Entity e) -> Script* { return context.scriptManager->getScript(e); })) {
-        script->onUpdate(time.asSeconds(), context, scene);
+        script->onUpdate(dt, context, scene);
     }
 
     /*
         Animation system
     */
 
-    const std::function<void(const float, Query<AnimationStateComponent, SpriteComponent, TransformComponent>&, Systems)> func = 
-        [](const float dt, Query<AnimationStateComponent, SpriteComponent, TransformComponent>& query, Systems context) -> void
-	{
+    context.entityManager->RunSystem<AnimationStateComponent, SpriteComponent, TransformComponent>(dt, [](const float dt, Query<AnimationStateComponent, SpriteComponent, TransformComponent>& query, Systems context) -> void
+        {
             for (auto& [state, sprite, transform] : query.iterate()) {
                 const uint64_t subtract = dt * 100;
 
@@ -294,54 +293,10 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
                 sprite.rectangle.setTextureRect(tex.rect);
                 sprite.rectangle.setTexture(tex.texture);
             }
-	};
-
-    context.entityManager->RunSystem<AnimationStateComponent, SpriteComponent, TransformComponent>(dt, func, context);
+        }, context);
     
 
-
-    for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<AnimationStateComponent>(); })) {
-        assert(entity.hasComponent<SpriteComponent>());
-        assert(entity.hasComponent<TransformComponent>());
-
-        const uint64_t subtract = time.asSeconds() * 100;
-
-        auto& component = entity.getComponent<AnimationStateComponent>();
-
-        const auto& animation = context.assetManager->GetAnimation(component.animationID);
-
-        component.lastUpdate -= time.asSeconds() * 100;
-
-        if (component.lastUpdate <= 0) {
-            component.offset++;
-            component.lastUpdate = animation.frameTime;
-            if (component.offset == animation.ids.size()) {
-                component.offset = 0;
-            }
-        }
-
-
-        if (component.lastUpdate <= 0) {
-            component.lastUpdate = animation.frameTime;
-            component.offset++;
-            if (component.offset == animation.ids.size()) component.offset = 0;
-        } 
-
-        const auto tex = context.assetManager->GetTexture(animation.ids[component.offset]).value();
-
-        auto& sprite = entity.getComponent<SpriteComponent>();
-
-        sprite.rectangle.setTextureRect(tex.rect);
-        sprite.rectangle.setTexture(tex.texture);
-        //update frame etc
-
-        //if looping, continue
-        //else revert to previous state?
-        
-    }
-
-
-    static bool g_active = false;
+   static bool g_active = false;
     static bool c_active = false;
     static bool draw_colliders = false;
     ImGui::Begin("Dev Tools");
@@ -360,24 +315,20 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
 
 
     if (g_active) {
-        for (Entity entity : scene->getEntities(context)
-            | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<TransformComponent>(); })) {
-
-            auto& transform = entity.getComponent<TransformComponent>();
-            if (entity.hasComponent<Physics2DComponent>()) {
-                const auto& physics = entity.getComponent<Physics2DComponent>();
-                transform.velocity += {0, physics.mass * 9.81f};
+        context.entityManager->RunSystem<TransformComponent, Physics2DComponent>(dt, [](const float dt, Query<TransformComponent, Physics2DComponent>& query, Systems systems) -> void {
+            for (auto& [transform, physics] : query.iterate()) {
+                transform.velocity += {0, physics.mass * 9.81f };
             }
+            }, context);
+
+    }
+
+
+    context.entityManager->RunSystem<TransformComponent>(dt, [](const float dt, Query<TransformComponent>& query, Systems systems) -> void {
+        for (auto& [transform] : query.iterate()) {
+            transform.velocity *= dt;
         }
-
-    }
-
-    for (Entity entity : scene->getEntities(context)
-        | std::ranges::views::filter([&](Entity e) -> bool {
-            return e.hasComponent<TransformComponent>();
-            })) {
-        entity.getComponent<TransformComponent>().velocity *= dt;
-    }
+        }, context);
 
     /* Collision System */
 
