@@ -12,6 +12,7 @@
 #include  <cassert>
 #include <nlohmann/json.hpp>
 #include "MapleContext.hpp"
+#include "View.hpp"
 
 class EntityManager {
 public:
@@ -20,6 +21,11 @@ public:
 		Query<Components...> query(entities, getStorage<Components>()...);
 		system(dt, query, systems);
 		query.PushChangesToOriginal(getStorage<Components>()...);
+	}
+
+	template <typename T>
+	ComponentView<T> getImmutableView() noexcept {
+		return ComponentView<T>(&getStorage<T>());
 	}
 
 	void registerComponent(int id, TypeErasedStorage* data, const std::string& name);

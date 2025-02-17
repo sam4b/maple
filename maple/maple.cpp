@@ -352,12 +352,13 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
             transform.pos += transform.velocity;
             transform.velocity = { 0, 0 };
         }
-        }, context);
+    }, context);
 
     context.entityManager->RunSystem<TransformComponent, AABBCollisionComponent>(dt, [](const float dt, Query<TransformComponent, AABBCollisionComponent>& query, Systems systems) -> void {
         for (auto& [transform, aabb] : query.iterate()) {
             aabb.pos = transform.pos;
-        }        }, context);
+        }        
+    }, context);
 
     context.entityManager->RunSystem<TransformComponent, SpriteComponent>(dt, [](const float dt, Query<TransformComponent, SpriteComponent>& query, Systems systems) -> void {
         for (auto& [transform, sprite] : query.iterate()) {
@@ -367,18 +368,17 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
 
     /* Drawing system */
 
-    for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<SpriteComponent>(); })) {
-        target.draw(entity.getComponent<SpriteComponent>().rectangle);
+
+    for (const auto& sprite : context.entityManager->getImmutableView<SpriteComponent>().iterate()) {
+        target.draw(sprite.rectangle);
     }
 
+
     if (draw_colliders) {
-        ImGui::Begin("Collider Info");
-        for (Entity entity : scene->getEntities(context) | std::ranges::views::filter([&](Entity e) -> bool { return e.hasComponent<AABBCollisionComponent>(); })) {
-            const auto& aabb = entity.getComponent<AABBCollisionComponent>();
+        for (const auto& aabb : context.entityManager->getImmutableView<AABBCollisionComponent>().iterate()) {
             
             sf::RectangleShape shape;
             
-            ImGui::Text(std::format("name: {}, pos: {}, {}, size: {}, {}", (entity.hasComponent<NameComponent>()) ? entity.getComponent<NameComponent>().name : std::to_string(entity.getID()), aabb.pos.x, aabb.pos.y, aabb.size.x, aabb.size.y).c_str());
             shape.setPosition(aabb.pos);
             shape.setSize(aabb.size);
             shape.setOutlineColor(sf::Color::Red);
@@ -387,10 +387,7 @@ void step(Scene* scene, sf::Time time, RenderTarget& target, std::queue<sf::Even
             target.draw(shape);
             
         }
-        ImGui::End();
     }
-    //Collision resolution?
-
 }
 
 
