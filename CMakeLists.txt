@@ -17,5 +17,5 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory("maple")
 add_subdirectory("vendor")
-#add_subdirectory("editor")
+add_subdirectory("editor")
 add_subdirectory("testproject")

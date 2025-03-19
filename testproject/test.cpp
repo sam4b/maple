@@ -1,5 +1,5 @@
 #include <maple.hpp>
-
+#include <editor.hpp>
 /*
     Temp here, should go in engine
 */
@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
     }
 
     if (s == "editor") {
-     //   editor_main(path);
+        editor_main(path);
     }
     else {
         maple_main(path); //bad and non-portable.
