@@ -43,11 +43,12 @@ const std::string& AssetRegistry::getName(const uint64_t uuid) const noexcept {
 
 	return UUIDtoName.at(uuid);
 }
+#include <iostream>
 
 void AssetRegistry::LoadRegistry(const nlohmann::json& assetData) {
-#pragma warning "we do need to save a null thing later"
-	if (assetData["assets"].empty()) return;
-
+	if (assetData["assets"].empty() || assetData["assets"].is_null()) {
+		return;
+	}
 	for (const auto& jsonObj : assetData["assets"]) {
 		const std::string name = jsonObj["name"];
 		const AssetProperties properties = AssetProperties::fromJson(jsonObj);

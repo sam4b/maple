@@ -62,6 +62,7 @@ public:
 
 	void ImportSpritesheet(const std::filesystem::path& path, const std::string& name, const SpritesheetData data);
 
+
 	void LoadAllAssetsInRegistry(const std::filesystem::path& projectRoot);
 
 	//Precondition: path exists and is a path to a PNG. 
@@ -86,6 +87,9 @@ private:
 
 	void LoadAllAnimations(const std::filesystem::path& path);
 
+	bool HasAssetFolders(const std::filesystem::path& path) const noexcept;
+
+	void CreateFolders(const std::filesystem::path& path) noexcept;
 
 	//TODO: Potentially just calculate off the fly tbh by (uuid, id). Profile memory and cpu usage to decide.
 	std::unordered_map<uint64_t, TextureData> subTextures;

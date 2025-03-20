@@ -224,7 +224,11 @@ void AssetManager::ImportSpritesheet(const std::filesystem::path& path, const st
 
 	{
 
-		assert(std::filesystem::exists(projectRoot / std::filesystem::path("assets/"))); //Checks that we have an asset folder. Todo: Automate asset folder creation.
+		if (!HasAssetFolders(projectRoot)) {
+			CreateFolders(projectRoot);
+
+		}
+
 		const std::filesystem::path newPath = std::format("{}/assets/textures/{}.png", projectRoot.string(), uuid);
 
 		std::filesystem::copy(path, newPath); //Can fail (throws).
@@ -236,6 +240,19 @@ void AssetManager::ImportSpritesheet(const std::filesystem::path& path, const st
 	LoadSpritesheet(uuid);
 	ImportSubTextures(uuid, data);
 }
+
+
+bool AssetManager::HasAssetFolders(const std::filesystem::path& path) const noexcept {
+	return std::filesystem::exists(projectRoot / std::filesystem::path("assets/")) && std::filesystem::exists(projectRoot / std::filesystem::path("assets/textures/"))
+		&& std::filesystem::exists(projectRoot / std::filesystem::path("assets/animations/"));
+}
+
+void AssetManager::CreateFolders(const std::filesystem::path& path) noexcept {
+	std::filesystem::create_directories(path / "assets");
+	std::filesystem::create_directories(path / "assets" / "textures/");
+	std::filesystem::create_directories(path / "assets" / "animations/");
+}
+
 
 void AssetManager::LoadFont(const uint64_t uuid)
 {

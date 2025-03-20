@@ -38,6 +38,7 @@ Maple LoadProject(const MapleProject& project) {
         std::ifstream file(registry);
         assert(file.is_open());
         const nlohmann::json assetRegistry = nlohmann::json::parse(file);
+        std::cout << "DEBUG:" << assetRegistry << std::endl;
         maple.systems.assetManager->LoadRegistry(assetRegistry);
     };
 
