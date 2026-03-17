@@ -1,5 +1,4 @@
 #include <maple.hpp>
-#include <editor.hpp>
 /*
     Temp here, should go in engine
 */
@@ -82,7 +81,7 @@ class BatScript : public Script {
                 view.entityManager->removeComponent<PossessedComponent>(entity.getID());
             }
             else {
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
                     trans.velocity = { -100 , 0 };
                 }
             }
@@ -100,7 +99,7 @@ class SylvanScript : public Script {
         sprite.rectangle.setTexture(texture.texture);
         sprite.rectangle.setTextureRect(texture.rect);
         sprite.rectangle.setSize({ 66, 66 });
-        sprite.rectangle.setPosition(0, 0);
+        sprite.rectangle.setPosition({ 0, 0 });
 
         TransformComponent& trans = entity.addComponent<TransformComponent>();
         trans.pos = { 0, 0 };
@@ -126,20 +125,20 @@ class SylvanScript : public Script {
 
         auto& trans = entity.getComponent<TransformComponent>();
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
             if (!entity.hasComponent<AnimationStateComponent>()) {
                 AddAnimation("sylvan_walk", entity, view);
             }
             trans.velocity += {100, 0};
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
             trans.velocity += {0, -500};
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
             //play flipped
             trans.velocity -= {100, 0};
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P)) {
             auto vec = scene->getEntitiesNear<TransformComponent>(entity, view, 10000.0f);
             auto& posession = vec[0].addComponent<PossessedComponent>();
             posession.posessor = entity.getID();
@@ -224,17 +223,5 @@ REGISTER_SCENE(SylvanScene);
 int main(int argc, char** argv) {
     const auto path = std::filesystem::current_path() / std::filesystem::path("../../../../testproject") / "project.json";
 
-    std::string s;
-
-    while (s != "editor" && s != "normal") {
-        std::cout << "Open in [editor/normal] mode?: ";
-        std::cin >> s;
-    }
-
-    if (s == "editor") {
-        editor_main(path);
-    }
-    else {
-        maple_main(path); //bad and non-portable.
-    }
+    maple_main(path); //bad and non-portable.
 }

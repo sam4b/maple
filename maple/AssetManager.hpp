@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <format>
 #include <imgui.h>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include "imgui_stdlib.h"
 #include "Utils.hpp"
 #include "AssetRegistry.hpp"

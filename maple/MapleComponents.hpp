@@ -55,7 +55,7 @@ struct SpriteComponent : ComponentMetadata {
 			this->rectangle.setTexture(texture.texture);
 		}
 
-		rectangle.setPosition(json["pos"][0], json["pos"][1]);
+		rectangle.setPosition({ json["pos"][0], json["pos"][1] });
 		rectangle.setSize({ json["size"][0], json["size"][1] });
 	}
 };

@@ -60,51 +60,49 @@ Maple LoadProject(const MapleProject& project) {
 }
 
 std::queue<sf::Event> readEvents(sf::RenderWindow& window, bool& shouldClose) {
-    sf::Event e;
     std::queue<sf::Event> events;
     ImGuiIO& io = ImGui::GetIO();
-    while (window.pollEvent(e)) {
-        ImGui::SFML::ProcessEvent(e);
-        switch (e.type) {
-            using enum sf::Event::EventType;
-
-        case MouseButtonPressed:
+    std::optional<sf::Event> event = window.pollEvent();
+    while (event.has_value()) {
+        const auto e = event.value();
+        ImGui::SFML::ProcessEvent(window, e);
+        if (e.is<sf::Event::Closed>()) {
+            shouldClose = true;
+        }
+        else if (e.is<sf::Event::MouseButtonPressed>()) {
             if (!io.WantCaptureMouse) {
                 events.push(e);
             }
-            break;
-        case KeyPressed:
+        }
+        else if (e.is<sf::Event::MouseButtonReleased>()) {
+            if (!io.WantCaptureMouse) {
+                events.push(e);
+            }
+        }
+        else if (e.is<sf::Event::MouseMoved>()) {
+            if (!io.WantCaptureMouse) {
+                events.push(e);
+            }
+        }
+        else if (e.is<sf::Event::KeyPressed>()) {
+            const auto key = e.getIf<sf::Event::KeyPressed>();
             if (!io.WantCaptureKeyboard) {
-                if (e.key.code == sf::Keyboard::Escape) {
+                if (key->code == sf::Keyboard::Key::Escape) {
                     shouldClose = true;
                 }
                 events.push(e);
             }
-
-            break;
-        case MouseButtonReleased:
-            if (!io.WantCaptureMouse) {
-                events.push(e);
-            }
-            break;
-        case MouseMoved:
-            if (!io.WantCaptureMouse) {
-                events.push(e);
-            }
-            break;
-        case KeyReleased:
+        }
+        else if (e.is<sf::Event::KeyReleased>()) {
             if (!io.WantCaptureKeyboard) {
                 events.push(e);
             }
-            break;
-        case Closed:
-            shouldClose = true;
-            break;
-        default:
-            break;
+        }
+        else {
+            //log event not taken?
         }
 
-
+        event = window.pollEvent();
     }
     return events;
 }
@@ -397,7 +395,7 @@ void runProject(const MapleProject& project) {
     Maple maple = LoadProject(project);
 
     bool shouldClose = false;
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Editor");
+    sf::RenderWindow window(sf::VideoMode(sf::Vector2u(1920, 1080)), "Editor");
 
     assert(ImGui::SFML::Init(window));
 

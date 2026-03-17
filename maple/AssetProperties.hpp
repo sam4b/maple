@@ -75,8 +75,8 @@ struct AssetProperties {
 			break;
 		case SubTexture:
 			out["extraneous"]["parentUUID"] = extraneous.subTextureData.parentUUID;
-			out["extraneous"]["rect"] = { extraneous.subTextureData.rect.getPosition().x, extraneous.subTextureData.rect.getPosition().y,
-			extraneous.subTextureData.rect.getSize().x, extraneous.subTextureData.rect.getSize().y };
+			out["extraneous"]["rect"] = { extraneous.subTextureData.rect.position.x, extraneous.subTextureData.rect.position.y,
+			extraneous.subTextureData.rect.size.x, extraneous.subTextureData.rect.size.y };
 			break;
 		case Animation:
 			break;
@@ -120,7 +120,7 @@ struct AssetProperties {
 			break;
 		case SubTexture:
 			properties.extraneous.subTextureData.parentUUID = jsonObj["extraneous"]["parentUUID"];
-			properties.extraneous.subTextureData.rect = sf::IntRect{ jsonObj["extraneous"]["rect"][0], jsonObj["extraneous"]["rect"][1], jsonObj["extraneous"]["rect"][2], jsonObj["extraneous"]["rect"][3] };
+			properties.extraneous.subTextureData.rect = sf::IntRect{ {jsonObj["extraneous"]["rect"][0], jsonObj["extraneous"]["rect"][1]}, {jsonObj["extraneous"]["rect"][2], jsonObj["extraneous"]["rect"][3]} };
 			break;
 		case Spritesheet:
 			properties.extraneous.spriteSheetData.tileSize = jsonObj["extraneous"]["tileSize"];

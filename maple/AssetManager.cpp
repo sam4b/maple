@@ -34,7 +34,7 @@ std::optional<Texture> AssetManager::GetTexture(const uint64_t id) {
 
 		return Texture {
 			.texture = &texture,
-			.rect = sf::IntRect{0, 0, (int)texture.getSize().x, (int)texture.getSize().y}
+			.rect = sf::IntRect{{0,0}, {(int)texture.getSize().x, (int)texture.getSize().y}} 
 		};
 	}
 
@@ -51,7 +51,7 @@ std::optional<Texture> AssetManager::GetTexture(const uint64_t id) {
 
 		return Texture {
 			.texture = &texture,
-			.rect = sf::IntRect{0, 0, (int)texture.getSize().x, (int)texture.getSize().y}
+			.rect = sf::IntRect{{0,0}, {(int)texture.getSize().x, (int)texture.getSize().y}}
 		};
 	}
 	else if (properties.type == AssetProperties::Type::SubTexture) { //Tile in a spritesheet
@@ -200,7 +200,7 @@ void AssetManager::ImportFont(const std::string& name, const std::filesystem::pa
 	//Validate
 	assert(path.extension() == ".ttf");
 	assert(std::filesystem::exists(path));
-	const bool valid = sf::Font().loadFromFile(path.string());
+	const bool valid = sf::Font().openFromFile(path.string());
 	assert(valid);
 
 	assert(false);
@@ -401,7 +401,7 @@ void AssetManager::ImportSubTextures(const uint64_t spriteSheetUUID, const Sprit
 		const int tu = id % spriteSheetData.tilesetRatio;
 		const int tv = id / spriteSheetData.tilesetRatio;
 
-		const sf::IntRect subset(tu * spriteSheetData.tileSize, tv * spriteSheetData.tileSize, spriteSheetData.tileSize, spriteSheetData.tileSize);
+		const sf::IntRect subset({ tu * spriteSheetData.tileSize, tv * spriteSheetData.tileSize }, { spriteSheetData.tileSize, spriteSheetData.tileSize });
 
 		const SubTextureMetadata extraneous(spriteSheetUUID, subset);
 		const uint64_t uuid = generateUUID();

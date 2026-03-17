@@ -14,7 +14,7 @@
 #include "EntityManager.hpp"
 #include "Meta.hpp"
 #include "SceneParser.hpp"
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 struct MapleProject {
     std::filesystem::path root;
