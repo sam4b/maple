@@ -35,11 +35,13 @@ option(SFML_BUILD_AUDIO "Build audio" ON)
 option(SFML_BUILD_NETWORK "Build network" OFF)
 FetchContent_MakeAvailable(sfml)
 
+option(IMGUI_SFML_FIND_SFML "Use find_package to find SFML" OFF)
+
 FetchContent_Declare(
-    imgui_sfml
+    imgui-sfml
     URL "https://github.com/sam4b/imgui-sfml/archive/refs/heads/master.zip" #my fork that makes it compatible with newer versions of imgui (api change in imgui)
 )
-FetchContent_MakeAvailable(imgui_sfml)
+FetchContent_MakeAvailable(imgui-sfml)
 
 
 FetchContent_Declare(
