@@ -300,6 +300,12 @@ void AssetManager::LoadSpritesheet(const uint64_t uuid) {
 
 	const auto success = textures[uuid].loadFromFile(std::format("{}/assets/textures/{}.png", projectRoot.string(), uuid));
 
+	if (!success) {
+		const auto errorSuccess = textures[uuid].loadFromFile(std::format("{}/assets/textures/error.png", projectRoot.string()));
+		assert(errorSuccess);
+		return;
+	}
+
 	assert(success);
 }
 

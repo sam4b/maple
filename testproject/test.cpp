@@ -127,7 +127,7 @@ class SylvanScript : public Script {
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
             if (!entity.hasComponent<AnimationStateComponent>()) {
-                AddAnimation("sylvan_walk", entity, view);
+              //  AddAnimation("sylvan_walk", entity, view);
             }
             trans.velocity += {100, 0};
         }

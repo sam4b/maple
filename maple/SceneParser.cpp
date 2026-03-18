@@ -32,8 +32,7 @@ Scene* ParseScene(const nlohmann::json& json, const std::unordered_map < std::st
 	};
 
 	
-	//
-	// scene->onSceneCreate(context, extraData);
+	 scene->onSceneCreate(context, extraData);
 
 
 	return scene;
