@@ -81,8 +81,18 @@ class BatScript : public Script {
                 view.entityManager->removeComponent<PossessedComponent>(entity.getID());
             }
             else {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
+                    if (!entity.hasComponent<AnimationStateComponent>()) {
+                        //  AddAnimation("sylvan_walk", entity, view);
+                    }
+                    trans.velocity += {100, 0};
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
+                    trans.velocity += {0, -500};
+                }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
-                    trans.velocity = { -100 , 0 };
+                    //play flipped
+                    trans.velocity -= {100, 0};
                 }
             }
         }
